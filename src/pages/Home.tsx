@@ -32,7 +32,7 @@ export default function Home() {
 
       <section className="feature">
         <div className="feature-media">
-          <img src="/products/voyage-hero.jpg" alt="Voyage eau de parfum on a stone counter" loading="lazy" />
+          <img src={`${import.meta.env.BASE_URL}products/voyage-hero.jpg`} alt="Voyage eau de parfum on a stone counter" loading="lazy" />
         </div>
         <Reveal className="feature-copy">
           <p className="eyebrow">Also in the house</p>

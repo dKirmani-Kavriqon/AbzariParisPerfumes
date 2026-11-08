@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import Lenis from 'lenis'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -38,9 +38,12 @@ function SmoothScroll() {
   return null
 }
 
+// The hosted preview cannot use real URL paths, so it keeps routes in memory.
+const Router = import.meta.env.MODE === 'preview-page' ? MemoryRouter : BrowserRouter
+
 export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <SmoothScroll />
       <Header />
       <CartDrawer />
@@ -57,6 +60,6 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
-    </BrowserRouter>
+    </Router>
   )
 }

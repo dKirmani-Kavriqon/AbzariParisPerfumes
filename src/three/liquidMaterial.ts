@@ -33,7 +33,7 @@ const fragment = /* glsl */ `
 
   void main() {
     vec3 rel = vWorld - vCenter;
-    float wave = sin(rel.x * 9.0 + uTime * 3.1) * cos(rel.z * 11.0 - uTime * 2.3);
+    float wave = sin(rel.x * 6.0 + uTime * 2.4) * cos(rel.z * 7.0 - uTime * 1.9);
     float surface = uFill + rel.x * uTilt.x + rel.z * uTilt.y + wave * uRipple;
     if (rel.y > surface) discard;
 
@@ -57,9 +57,21 @@ const fragment = /* glsl */ `
     float path = 1.0 - facing;
     float depth = clamp((surface - rel.y) / 1.2, 0.0, 1.0);
     vec3 body = mix(uBright, uDeep, smoothstep(0.0, 1.0, depth * 0.7 + path * 0.65));
-    // back light scattering through the middle of the flacon
+    // back light scattering through the middle of the flacon, gathering toward the base
+    // the way a lens-shaped bottle focuses light
     float glow = pow(facing, 3.0) * (1.0 - depth * 0.6);
-    body += uBright * glow * 0.35;
+    float lens = smoothstep(0.2, 1.0, depth) * pow(facing, 2.0);
+    body += uBright * (glow * 0.22 + lens * 0.35);
+    // light falls off toward the sides as the oil gets thicker
+    body *= 0.72 + 0.28 * facing;
+    // the curved wall refracts the dark room into a soft band just inside the rim,
+    // with a bright core in the middle: what separates a lens of oil from a painted solid
+    float band = smoothstep(0.25, 0.42, facing) * (1.0 - smoothstep(0.42, 0.62, facing));
+    body *= 1.0 - band * 0.5;
+    float core = smoothstep(0.75, 0.98, facing);
+    body = mix(body, body * 1.25 + uBright * 0.08, core);
+    // faint horizontal striations from the moulded glass
+    body *= 0.96 + 0.04 * sin(rel.y * 60.0 + sin(rel.x * 8.0) * 2.0);
     // caustic-like shimmer drifting through the oil
     float sh = sin(rel.x * 14.0 + rel.y * 9.0 + uTime * 0.9) * sin(rel.x * 7.0 - rel.y * 13.0 - uTime * 0.6);
     body += uBright * smoothstep(0.75, 1.0, sh) * 0.12 * (1.0 - depth);
@@ -75,8 +87,8 @@ export function createLiquidMaterial(color: string) {
   const base = new THREE.Color(color)
   const hsl = { h: 0, s: 0, l: 0 }
   base.getHSL(hsl)
-  const deep = new THREE.Color().setHSL(hsl.h * 0.9, Math.min(1, hsl.s * 1.1), hsl.l * 0.22)
-  const bright = new THREE.Color().setHSL(hsl.h * 1.04, hsl.s * 0.9, Math.min(0.72, hsl.l * 1.2))
+  const deep = new THREE.Color().setHSL(hsl.h * 0.85, Math.min(1, hsl.s * 1.1), hsl.l * 0.16)
+  const bright = new THREE.Color().setHSL(hsl.h * 1.05, Math.min(1, hsl.s * 1.05), Math.min(0.62, hsl.l * 1.05))
   const surface = new THREE.Color().setHSL(hsl.h, hsl.s * 0.8, Math.min(0.85, hsl.l * 1.5))
   return new THREE.ShaderMaterial({
     vertexShader: vertex,

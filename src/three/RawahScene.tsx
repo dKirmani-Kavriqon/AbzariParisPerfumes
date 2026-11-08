@@ -3,25 +3,27 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, Environment, Lightformer } from '@react-three/drei'
 import * as THREE from 'three'
 import { Bottle, type BottleRig } from './Bottle'
-import { NoteVapour, type VapourRig } from './NoteVapour'
+import { SprayMist, type SprayRig } from './SprayMist'
+import { ACTUATOR_R, ACTUATOR_Y, NOZZLE_DIR } from './spray'
 import { easeInOut, motion, range, window4 } from './motion'
 
 // Scroll choreography for the Rawah story. Progress p runs 0..1 over the pinned section.
 //   0.00 to 0.12  arrival, slow breathing turn
 //   0.12 to 0.34  one full 360 turn so the label passes the camera
 //   0.34 to 0.46  the cap unscrews and lifts
-//   0.46 to 0.64  top notes rise
+//   0.46 to 0.64  the atomiser sprays sideways, top notes described
 //   0.62 to 0.80  heart notes
 //   0.78 to 0.94  base notes
 //   0.92 to 1.00  cap returns, the bottle settles for purchase
 
 function Choreography() {
   const group = useRef<THREE.Group>(null)
-  const plume = useRef<THREE.Group>(null)
   const smooth = useRef(0)
   const drag = useRef({ x: 0, y: 0 })
-  const rig = useMemo<BottleRig>(() => ({ cap: 0, push: 0, swing: 1.5 }), [])
-  const vapour = useMemo<VapourRig>(() => ({ reveal: new THREE.Vector3() }), [])
+  const rig = useMemo<BottleRig>(() => ({ cap: 0, push: 0, swing: 1.5, spray: 0 }), [])
+  const mist = useMemo<SprayRig>(() => ({ origin: new THREE.Vector3(), dir: new THREE.Vector3(-1, 0, 0), active: new THREE.Vector3() }), [])
+  const nozzleLocal = useMemo(() => new THREE.Vector3(NOZZLE_DIR.x * ACTUATOR_R, ACTUATOR_Y + 0.01, NOZZLE_DIR.z * ACTUATOR_R), [])
+  const q = useMemo(() => new THREE.Quaternion(), [])
   const { camera, size } = useThree()
   const look = useMemo(() => new THREE.Vector3(), [])
   const narrow = size.width < 820
@@ -55,30 +57,31 @@ function Choreography() {
     const top = window4(p, 0.44, 0.5, 0.62, 0.68)
     const heart = window4(p, 0.6, 0.66, 0.78, 0.84)
     const base = window4(p, 0.76, 0.82, 0.92, 0.96)
-    vapour.reveal.set(top, heart, base)
-    if (plume.current) {
-      plume.current.position.set(g.position.x, g.position.y + 1.05, 0)
-      plume.current.visible = top + heart + base > 0.001
-    }
+    const open = range(rig.cap, 0.9, 1)
+    mist.active.set(top * open, heart * open, base * open)
+    rig.spray = Math.max(top, heart, base) * open
+    // the nozzle rides on the bottle, so the spray follows any turn or drag
+    g.updateMatrixWorld()
+    mist.origin.copy(nozzleLocal).applyMatrix4(g.matrixWorld)
+    mist.origin.y -= 0.02 * rig.spray
+    mist.dir.copy(NOZZLE_DIR).applyQuaternion(g.getWorldQuaternion(q))
 
-    // camera: arrives close, pulls back and up to frame the plume
+    // camera: arrives close, then eases back a touch to frame the spray
     const arrive = range(t, 0, 2.2)
     const lift = window4(p, 0.38, 0.5, 0.9, 0.98)
-    const camZ = (narrow ? 11.5 : 8.4) + (1 - easeInOut(arrive)) * 2.5 + lift * 1.4
-    camera.position.set(lift * -0.15, 0.9 + lift * 0.9, camZ)
-    look.set(xShift * 0.55, (narrow ? 0.95 : 1.18) + lift * 0.5, 0)
+    const camZ = (narrow ? 11.5 : 8.4) + (1 - easeInOut(arrive)) * 2.5 + lift * 0.9
+    camera.position.set(lift * -0.3, 0.9 + lift * 0.25, camZ)
+    look.set(xShift * 0.45, (narrow ? 0.95 : 1.15) + lift * 0.1, 0)
     camera.lookAt(look)
   })
 
   return (
     <>
       <group ref={group}>
-        <Bottle liquid="#c99a2e" name="Rawah" rig={rig} />
+        <Bottle liquid="#a9721e" name="Rawah" rig={rig} />
       </group>
-      <group ref={plume}>
-        <NoteVapour rig={vapour} />
-      </group>
-      <ContactShadows position={[0, -0.71, 0]} scale={6} blur={2.6} opacity={0.65} far={1.4} color="#000" />
+      <SprayMist rig={mist} />
+      <ContactShadows position={[0, -0.7, 0]} scale={5} blur={2.4} opacity={0.85} far={1} color="#000" />
     </>
   )
 }
@@ -102,8 +105,8 @@ function Halo() {
     [],
   )
   return (
-    <mesh position={[0, 0.6, -4]} material={mat}>
-      <planeGeometry args={[11, 8]} />
+    <mesh position={[0, 0.8, -7]} material={mat}>
+      <planeGeometry args={[18, 12]} />
     </mesh>
   )
 }
@@ -111,11 +114,9 @@ function Halo() {
 function Lights() {
   return (
     <>
-      <color attach="background" args={['#0b0907']} />
       <Halo />
       <ambientLight intensity={0.15} />
       <directionalLight position={[-3, 4, 3]} intensity={1.4} color="#fff2dc" />
-      <pointLight position={[2.5, 0.5, -2]} intensity={14} color="#ffb85c" distance={8} />
       <Environment resolution={256} frames={1}>
         <color attach="background" args={['#0b0907']} />
         {/* tall softbox key, left */}
@@ -125,10 +126,15 @@ function Lights() {
         {/* thin front strips: streak highlights that make the empty glass read as glass */}
         <Lightformer form="rect" intensity={2.2} color="#fff8ec" position={[-1.6, 1, 5]} scale={[0.25, 5, 1]} target={[0, 0, 0]} />
         <Lightformer form="rect" intensity={1.2} color="#fff8ec" position={[1.2, 1.2, 5]} scale={[0.12, 4, 1]} target={[0, 0, 0]} />
+        {/* warm backlight, the classic perfume-shot trick that makes the juice glow */}
+        <Lightformer form="rect" intensity={2.4} color="#ffcf8a" position={[0, 0.6, -4]} scale={[3, 2.5, 1]} target={[0, 0, 0]} />
         {/* top panel */}
         <Lightformer form="rect" intensity={0.5} color="#ffffff" position={[0, 5, 0]} scale={[6, 2, 1]} rotation-x={Math.PI / 2} />
-        {/* warm floor bounce */}
-        <Lightformer form="circle" intensity={0.8} color="#c98b3a" position={[0, -4, 1]} scale={4} rotation-x={-Math.PI / 2} />
+        {/* grazing side strips: bright edges along the silhouette, where thick glass catches light */}
+        <Lightformer form="rect" intensity={3} color="#fff6e6" position={[-5, 0.5, -0.5]} scale={[0.5, 6, 1]} target={[0, 0, 0]} />
+        <Lightformer form="rect" intensity={3} color="#fff6e6" position={[5, 0.5, 0.5]} scale={[0.5, 6, 1]} target={[0, 0, 0]} />
+        {/* faint floor bounce */}
+        <Lightformer form="circle" intensity={0.25} color="#8a6a40" position={[0, -4, 1]} scale={4} rotation-x={-Math.PI / 2} />
       </Environment>
     </>
   )
@@ -139,7 +145,7 @@ export default function RawahScene() {
     <Canvas
       dpr={[1, 1.75]}
       camera={{ fov: 30, position: [0, 0.4, 8], near: 0.1, far: 50 }}
-      gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
+      gl={{ antialias: true, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1.0 }}
       style={{ position: 'absolute', inset: 0 }}
     >
       <Suspense fallback={null}>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { motion, window4 } from '../three/motion'
-import { bySlug, formatINR, noteImage } from '../data/products'
+import { bySlug, formatINR, noteDescription, noteImage } from '../data/products'
 import { useCart } from '../state/cart'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -12,9 +12,9 @@ const RawahScene = lazy(() => import('../three/RawahScene'))
 type Chapter = { from: number; in: number; out: number; to: number; side: 'center' | 'left'; bottom?: boolean; node: React.ReactNode }
 
 const tiers = [
-  { name: 'Top', tone: '#e8c98a', notes: ['Woody', 'Balsamic', 'Powdery'], line: 'The first minute. Dry wood and resin, softened by a cosmetic powder.' },
-  { name: 'Heart', tone: '#c98a58', notes: ['Musky', 'Warm Spicy', 'Tobacco'], line: 'An hour in. Clean musk, a spice cabinet and cured tobacco leaf.' },
-  { name: 'Base', tone: '#a48a6a', notes: ['Oud', 'Amber', 'Metallic'], line: 'What stays on the collar. Oud and amber, with a cold mineral edge.' },
+  { name: 'Top', when: 'The first minutes', tone: '#e8c98a', notes: ['Woody', 'Balsamic', 'Powdery'] },
+  { name: 'Heart', when: 'After an hour', tone: '#d9a27a', notes: ['Musky', 'Warm Spicy', 'Tobacco'] },
+  { name: 'Base', when: 'Into the evening', tone: '#b9a58a', notes: ['Oud', 'Amber', 'Metallic'] },
 ]
 
 export default function RawahStory() {
@@ -61,16 +61,20 @@ export default function RawahStory() {
         from: a, in: a + 0.03, out: a + 0.13, to: a + 0.16, side: 'left' as const,
         node: (
           <>
-            <p className="eyebrow" style={{ color: t.tone }}>{t.name} notes</p>
+            <p className="eyebrow" style={{ color: t.tone }}>
+              {t.name} notes · {t.when}
+            </p>
             <ul className="note-list">
-              {t.notes.map((n) => (
-                <li key={n}>
+              {t.notes.map((n, j) => (
+                <li key={n} style={{ transitionDelay: `${150 + j * 160}ms` }}>
                   <img className="note-img" src={noteImage(n)} alt="" style={{ borderColor: t.tone }} />
-                  {n}
+                  <div className="note-text">
+                    <span className="note-name">{n}</span>
+                    <span className="note-desc">{noteDescription[n]}</span>
+                  </div>
                 </li>
               ))}
             </ul>
-            <p className="story-p">{t.line}</p>
           </>
         ),
       }
@@ -106,6 +110,8 @@ export default function RawahStory() {
         node.style.transform = `translate3d(0, ${(1 - o) * (p < c.in ? 24 : -24)}px, 0)`
         node.style.visibility = o < 0.01 ? 'hidden' : 'visible'
         node.style.pointerEvents = o > 0.6 ? 'auto' : 'none'
+        // notes arrive one after another, carried in on the spray
+        node.classList.toggle('is-on', o > 0.55)
       })
     }
     const st = ScrollTrigger.create({

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
-import { bySlug, formatINR, hasNoteImage, noteImage, products } from '../data/products'
+import { bySlug, formatINR, hasNoteImage, noteDescription, noteImage, products } from '../data/products'
 import { useCart } from '../state/cart'
 
 export default function ProductPage() {
@@ -86,7 +86,10 @@ export default function ProductPage() {
                     {t.notes.map((n) => (
                       <li key={n}>
                         {hasNoteImage(n) && <img src={noteImage(n)} alt="" />}
-                        <span>{n}</span>
+                        <span className="tier-text">
+                          <span>{n}</span>
+                          {noteDescription[n] && <small>{noteDescription[n]}</small>}
+                        </span>
                       </li>
                     ))}
                   </ul>

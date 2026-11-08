@@ -75,15 +75,29 @@ export const products: Product[] = [
 ]
 
 // Every product has a photo cut from the live store at /products/<slug>.jpg
-for (const p of products) p.image ??= `/products/${p.slug}.jpg`
-bySlugRaw('rawah')!.gallery = ['/products/rawah-hero.jpg', '/products/rawah-duo.jpg', '/products/rawah-notes.jpg']
-bySlugRaw('voyage')!.gallery = ['/products/voyage-hero.jpg', '/products/voyage.jpg']
+const B = import.meta.env.BASE_URL
+for (const p of products) p.image ??= `${B}products/${p.slug}.jpg`
+bySlugRaw('rawah')!.gallery = [`${B}products/rawah-hero.jpg`, `${B}products/rawah-duo.jpg`, `${B}products/rawah-notes.jpg`]
+bySlugRaw('voyage')!.gallery = [`${B}products/voyage-hero.jpg`, `${B}products/voyage.jpg`]
 
 function bySlugRaw(slug: string) {
   return products.find((p) => p.slug === slug)
 }
 
-export const noteImage = (note: string) => `/notes/${note.toLowerCase().replace(/\s+/g, '-')}.png`
+/** What each note smells like, in plain words. Shown in the Rawah story and on product pages. */
+export const noteDescription: Record<string, string> = {
+  Woody: 'Dry, smooth wood, like a freshly planed board of cedar.',
+  Balsamic: 'Warm tree resin, sweet and a little sticky, glowing like honey.',
+  Powdery: 'A soft, cosmetic finish that blurs the edges, like face powder on skin.',
+  Musky: 'Clean, skin-like warmth that sits close and lasts.',
+  'Warm Spicy': 'Cinnamon bark, clove and star anise, warm rather than hot.',
+  Tobacco: 'Cured leaf, sweet and faintly smoky, like an opened tin.',
+  Oud: 'Agarwood. Deep, smoky and a little leathery: the heart of Rawah.',
+  Amber: 'Golden resin warmth, round and sweet, that holds everything together.',
+  Metallic: 'A cool mineral edge that keeps the base from feeling heavy.',
+}
+
+export const noteImage = (note: string) => `${import.meta.env.BASE_URL}notes/${note.toLowerCase().replace(/\s+/g, '-')}.png`
 export const hasNoteImage = (note: string) =>
   ['woody', 'balsamic', 'powdery', 'musky', 'warm spicy', 'tobacco', 'oud', 'amber', 'metallic'].includes(note.toLowerCase())
 
