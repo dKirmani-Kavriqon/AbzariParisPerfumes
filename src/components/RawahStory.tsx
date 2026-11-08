@@ -7,7 +7,10 @@ import { bySlug, formatINR, noteDescription, noteImage } from '../data/products'
 import { useCart } from '../state/cart'
 
 gsap.registerPlugin(ScrollTrigger)
-const RawahScene = lazy(() => import('../three/RawahScene'))
+// Start fetching the 3D chunk as soon as this module is evaluated, in parallel with the
+// first paint, instead of waiting for React to reach the lazy boundary.
+const sceneChunk = import('../three/RawahScene')
+const RawahScene = lazy(() => sceneChunk)
 
 type Chapter = { from: number; in: number; out: number; to: number; side: 'center' | 'left'; bottom?: boolean; node: React.ReactNode }
 
@@ -22,6 +25,8 @@ export default function RawahStory() {
   const stage = useRef<HTMLDivElement>(null)
   const chapterRefs = useRef<(HTMLDivElement | null)[]>([])
   const [hint, setHint] = useState(true)
+  const [ready, setReady] = useState(false)
+  const [active, setActive] = useState(true)
   const add = useCart((s) => s.add)
   const rawah = bySlug('rawah')!
 
@@ -67,7 +72,7 @@ export default function RawahStory() {
             <ul className="note-list">
               {t.notes.map((n, j) => (
                 <li key={n} style={{ transitionDelay: `${150 + j * 160}ms` }}>
-                  <img className="note-img" src={noteImage(n)} alt="" style={{ borderColor: t.tone }} />
+                  <img className="note-img" src={noteImage(n)} alt="" width={64} height={64} decoding="async" style={{ borderColor: t.tone }} />
                   <div className="note-text">
                     <span className="note-name">{n}</span>
                     <span className="note-desc">{noteDescription[n]}</span>
@@ -124,6 +129,20 @@ export default function RawahStory() {
     return () => st.kill()
   }, [])
 
+  // The scene only renders while the story is on screen (plus a margin, so it is already
+  // running when it scrolls back in).
+  useEffect(() => {
+    const el = section.current
+    if (!el) return
+    motion.warm = false
+    const io = new IntersectionObserver(([e]) => setActive(e.isIntersecting), { rootMargin: '300px 0px' })
+    io.observe(el)
+    return () => {
+      io.disconnect()
+      motion.warm = false
+    }
+  }, [])
+
   // Drag to turn the bottle. Releasing flicks the oil.
   useEffect(() => {
     const el = stage.current
@@ -168,9 +187,12 @@ export default function RawahStory() {
     <section ref={section} className="story" aria-label="Rawah">
       <div ref={stage} className="story-stage">
         <div className="story-glow" aria-hidden />
-        <Suspense fallback={<div className="story-loading">Rawah</div>}>
-          <RawahScene />
-        </Suspense>
+        <div className={`story-canvas ${ready ? 'is-ready' : ''}`}>
+          <Suspense fallback={null}>
+            <RawahScene active={active} onReady={() => setReady(true)} />
+          </Suspense>
+        </div>
+        {!ready && <div className="story-loader" aria-hidden />}
         {chapters.map((c, i) => (
           <div
             key={i}
