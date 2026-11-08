@@ -8,6 +8,10 @@ export const motion = {
   dragX: 0,
   /** pointer velocity impulse, consumed by the liquid spring each frame */
   impulse: 0,
+  /** true once every shader is compiled and the canvas has faded in */
+  warm: false,
+  /** clock time (s) when the scene was revealed; intro animations count from here */
+  readyAt: 0,
   reduced: typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
 }
 

@@ -74,11 +74,11 @@ export const products: Product[] = [
   { slug: 'natural-oils', name: 'Natural Oils', category: 'natural', price: 0, soldOut: true, liquid: '#7a2f3a', size: 'Coming soon' },
 ]
 
-// Every product has a photo cut from the live store at /products/<slug>.jpg
+// Every product has a photo cut from the live store at /products/<slug>.webp
 const B = import.meta.env.BASE_URL
-for (const p of products) p.image ??= `${B}products/${p.slug}.jpg`
-bySlugRaw('rawah')!.gallery = [`${B}products/rawah-hero.jpg`, `${B}products/rawah-duo.jpg`, `${B}products/rawah-notes.jpg`]
-bySlugRaw('voyage')!.gallery = [`${B}products/voyage-hero.jpg`, `${B}products/voyage.jpg`]
+for (const p of products) p.image ??= `${B}products/${p.slug}.webp`
+bySlugRaw('rawah')!.gallery = [`${B}products/rawah-hero.webp`, `${B}products/rawah-duo.webp`, `${B}products/rawah-notes.webp`]
+bySlugRaw('voyage')!.gallery = [`${B}products/voyage-hero.webp`, `${B}products/voyage.webp`]
 
 function bySlugRaw(slug: string) {
   return products.find((p) => p.slug === slug)
@@ -97,7 +97,7 @@ export const noteDescription: Record<string, string> = {
   Metallic: 'A cool mineral edge that keeps the base from feeling heavy.',
 }
 
-export const noteImage = (note: string) => `${import.meta.env.BASE_URL}notes/${note.toLowerCase().replace(/\s+/g, '-')}.png`
+export const noteImage = (note: string) => `${import.meta.env.BASE_URL}notes/${note.toLowerCase().replace(/\s+/g, '-')}.webp`
 export const hasNoteImage = (note: string) =>
   ['woody', 'balsamic', 'powdery', 'musky', 'warm spicy', 'tobacco', 'oud', 'amber', 'metallic'].includes(note.toLowerCase())
 

@@ -1,6 +1,6 @@
-import { Suspense, useMemo, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { ContactShadows, Environment, Lightformer } from '@react-three/drei'
+import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 import { Bottle, type BottleRig } from './Bottle'
 import { SprayMist, type SprayRig } from './SprayMist'
@@ -16,7 +16,7 @@ import { easeInOut, motion, range, window4 } from './motion'
 //   0.78 to 0.94  base notes
 //   0.92 to 1.00  cap returns, the bottle settles for purchase
 
-function Choreography() {
+function Choreography({ onLabel }: { onLabel: () => void }) {
   const group = useRef<THREE.Group>(null)
   const smooth = useRef(0)
   const drag = useRef({ x: 0, y: 0 })
@@ -31,7 +31,9 @@ function Choreography() {
   useFrame((state, dt) => {
     const g = group.current
     if (!g) return
-    const k = 1 - Math.exp(-dt * 5)
+    // Lenis already smooths the scroll, so this only takes the edge off wheel steps.
+    // A slow rate here stacked on Lenis is what made the bottle feel like it lagged behind.
+    const k = 1 - Math.exp(-dt * 11)
     smooth.current += (motion.progress - smooth.current) * k
     const p = smooth.current
     const t = state.clock.elapsedTime
@@ -67,7 +69,8 @@ function Choreography() {
     mist.dir.copy(NOZZLE_DIR).applyQuaternion(g.getWorldQuaternion(q))
 
     // camera: arrives close, then eases back a touch to frame the spray
-    const arrive = range(t, 0, 2.2)
+    // the dolly-in starts when the scene is revealed, not when the canvas was created
+    const arrive = motion.warm ? range(t - motion.readyAt, 0, 2.4) : 0
     const lift = window4(p, 0.38, 0.5, 0.9, 0.98)
     const camZ = (narrow ? 11.5 : 8.4) + (1 - easeInOut(arrive)) * 2.5 + lift * 0.9
     camera.position.set(lift * -0.3, 0.9 + lift * 0.25, camZ)
@@ -78,12 +81,67 @@ function Choreography() {
   return (
     <>
       <group ref={group}>
-        <Bottle liquid="#a9721e" name="Rawah" rig={rig} />
+        <Bottle liquid="#a9721e" name="Rawah" rig={rig} onReady={onLabel} />
       </group>
-      <SprayMist rig={mist} />
-      <ContactShadows position={[0, -0.7, 0]} scale={5} blur={2.4} opacity={0.85} far={1} color="#000" />
+      <SprayMist rig={mist} count={narrow ? 1200 : 2000} />
+      <BlobShadow />
     </>
   )
+}
+
+// A soft oval shadow under the flacon. ContactShadows re-rendered the whole scene into a
+// blurred depth target every frame; a gradient on a plane looks the same here and costs nothing.
+function BlobShadow() {
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: `varying vec2 vUv;
+          void main(){
+            float d = length((vUv - 0.5) * 2.0);
+            float a = pow(1.0 - smoothstep(0.0, 1.0, d), 1.6) * 0.82;
+            gl_FragColor = vec4(0.0, 0.0, 0.0, a);
+          }`,
+      }),
+    [],
+  )
+  return (
+    <mesh position={[0, -0.69, 0]} rotation-x={-Math.PI / 2} scale={[2.6, 1.5, 1]} material={mat} renderOrder={-1}>
+      <planeGeometry />
+    </mesh>
+  )
+}
+
+// Compiles every shader before anything is shown, then lets two real frames render so the
+// environment map and the glass's refraction buffer are filled. Without this, the first
+// spray or the first glimpse of the glass stalls the main thread for a shader compile.
+function Warmup({ labelReady, onReady }: { labelReady: boolean; onReady: () => void }) {
+  const { gl, scene, camera, clock } = useThree()
+  const done = useRef(onReady)
+  done.current = onReady
+  useEffect(() => {
+    if (!labelReady || motion.warm) return
+    let alive = true
+    gl.compileAsync(scene, camera)
+      .catch(() => undefined)
+      .then(() => {
+        let n = 0
+        const tick = () => {
+          if (!alive) return
+          if (++n < 3) return void requestAnimationFrame(tick)
+          motion.warm = true
+          motion.readyAt = clock.elapsedTime
+          done.current()
+        }
+        requestAnimationFrame(tick)
+      })
+    return () => {
+      alive = false
+    }
+  }, [labelReady, gl, scene, camera, clock])
+  return null
 }
 
 // Warm halo behind the flacon. Lives in the scene (not CSS) so the glass refracts it.
@@ -140,17 +198,36 @@ function Lights() {
   )
 }
 
-export default function RawahScene() {
+const MAX_DPR = typeof window === 'undefined' ? 1.5 : Math.min(window.devicePixelRatio || 1, 1.5)
+
+export default function RawahScene({ active = true, onReady }: { active?: boolean; onReady: () => void }) {
+  const [labelReady, setLabelReady] = useState(false)
+  const [dpr, setDpr] = useState(MAX_DPR)
+  const onLabel = useCallback(() => setLabelReady(true), [])
   return (
     <Canvas
-      dpr={[1, 1.75]}
+      // stop rendering entirely while the story is scrolled out of view
+      frameloop={active ? 'always' : 'never'}
+      dpr={dpr}
       camera={{ fov: 30, position: [0, 0.4, 8], near: 0.1, far: 50 }}
-      gl={{ antialias: true, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1.0 }}
+      gl={{ antialias: true, powerPreference: 'high-performance', stencil: false, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1.0 }}
+      onCreated={({ gl }) => {
+        // The glass refracts a blurred copy of the oil, so that copy does not need full resolution.
+        gl.transmissionResolutionScale = 0.6
+      }}
       style={{ position: 'absolute', inset: 0 }}
     >
+      {/* Drops resolution step by step if the device cannot hold its frame rate, and climbs back when it can. */}
+      <PerformanceMonitor
+        flipflops={4}
+        onIncline={() => setDpr((d) => Math.min(MAX_DPR, +(d + 0.25).toFixed(2)))}
+        onDecline={() => setDpr((d) => Math.max(1, +(d - 0.25).toFixed(2)))}
+        onFallback={() => setDpr(1)}
+      />
       <Suspense fallback={null}>
         <Lights />
-        <Choreography />
+        <Choreography onLabel={onLabel} />
+        <Warmup labelReady={labelReady} onReady={onReady} />
       </Suspense>
     </Canvas>
   )

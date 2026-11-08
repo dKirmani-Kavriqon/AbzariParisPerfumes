@@ -24,6 +24,8 @@ type Props = {
   name: string
   rig: BottleRig
   onSpring?: (s: LiquidSpring) => void
+  /** called once the label is painted and on the glass, so the scene can warm up and reveal */
+  onReady?: () => void
 }
 
 // Small glass parts (the neck) use the built-in physical transmission. The body gets
@@ -53,7 +55,12 @@ const lacquer = new THREE.MeshPhysicalMaterial({
 const brass = new THREE.MeshStandardMaterial({ color: '#d9b878', metalness: 1, roughness: 0.18, envMapIntensity: 1.5 })
 const tube = new THREE.MeshStandardMaterial({ color: '#d8d2c4', roughness: 0.15, metalness: 0 })
 
-export function Bottle({ liquid, name, rig, onSpring }: Props) {
+const ZERO = new THREE.Vector2()
+// Fewer refraction samples on phones and low-core machines: the glass is the most
+// expensive thing on screen, and 3 samples still reads as thick glass at phone size.
+const lowEnd = typeof navigator !== 'undefined' && (navigator.hardwareConcurrency ?? 8) <= 4
+
+export function Bottle({ liquid, name, rig, onSpring, onReady }: Props) {
   const body = useRef<THREE.Group>(null)
   const cap = useRef<THREE.Group>(null)
   const nozzle = useRef<THREE.Group>(null)
@@ -88,6 +95,9 @@ export function Bottle({ liquid, name, rig, onSpring }: Props) {
   }, [name])
 
   useEffect(() => onSpring?.(spring), [onSpring, spring])
+  useEffect(() => {
+    if (label) onReady?.()
+  }, [label, onReady])
 
   useFrame((state, dt) => {
     if (!body.current || !cap.current) return
@@ -96,7 +106,7 @@ export function Bottle({ liquid, name, rig, onSpring }: Props) {
     rig.push *= 0.9
     const u = liquidMat.uniforms
     u.uTime.value = state.clock.elapsedTime
-    u.uTilt.value.copy(motion.reduced ? new THREE.Vector2() : spring.tilt)
+    u.uTilt.value.copy(motion.reduced ? ZERO : spring.tilt)
     u.uRipple.value = motion.reduced ? 0 : 0.0015 + spring.energy * 0.025
 
     // Cap: a short unscrewing twist, then it lifts clear and drifts up and back.
@@ -137,7 +147,7 @@ export function Bottle({ liquid, name, rig, onSpring }: Props) {
           envMapIntensity={1.3}
           attenuationColor="#fff4e0"
           attenuationDistance={2.5}
-          samples={narrow ? 4 : 8}
+          samples={narrow || lowEnd ? 3 : 6}
         />
       </mesh>
       {label && <mesh geometry={labelGeo} material={label} />}
@@ -165,7 +175,7 @@ export function Bottle({ liquid, name, rig, onSpring }: Props) {
       </group>
       <group ref={cap}>
         <mesh material={lacquer}>
-          <sphereGeometry args={[0.47, 64, 48]} />
+          <sphereGeometry args={[0.47, 48, 32]} />
         </mesh>
       </group>
     </group>

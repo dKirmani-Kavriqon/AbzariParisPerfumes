@@ -120,22 +120,29 @@ export class LiquidSpring {
   k = 95 // stiffness: ~1.5Hz slosh
   c = 2.2 // damping: rings for a couple of seconds
 
+  // scratch objects: step() runs every frame, so it must not allocate (GC pauses read as stutter)
+  private q = new THREE.Quaternion()
+  private qInv = new THREE.Quaternion()
+  private p = new THREE.Vector3()
+  private omega = new THREE.Vector3()
+  private v = new THREE.Vector3()
+
   step(obj: THREE.Object3D, dt: number, extra = 0) {
-    dt = Math.min(dt, 1 / 30)
-    const q = obj.getWorldQuaternion(new THREE.Quaternion())
-    const p = obj.getWorldPosition(new THREE.Vector3())
+    dt = Math.min(Math.max(dt, 1 / 240), 1 / 30)
+    const q = obj.getWorldQuaternion(this.q)
+    const p = obj.getWorldPosition(this.p)
     if (!this.started) {
       this.prevQ.copy(q)
       this.prevP.copy(p)
       this.started = true
     }
     // angular velocity from quaternion delta
-    this.dq.copy(q).multiply(this.prevQ.clone().invert())
+    this.dq.copy(q).multiply(this.qInv.copy(this.prevQ).invert())
     const angle = 2 * Math.acos(Math.min(1, Math.abs(this.dq.w)))
     const s = Math.sqrt(1 - this.dq.w * this.dq.w) || 1
     const sign = this.dq.w < 0 ? -1 : 1
-    const omega = new THREE.Vector3(this.dq.x / s, this.dq.y / s, this.dq.z / s).multiplyScalar((sign * angle) / dt)
-    const v = p.clone().sub(this.prevP).divideScalar(dt)
+    const omega = this.omega.set(this.dq.x / s, this.dq.y / s, this.dq.z / s).multiplyScalar((sign * angle) / dt)
+    const v = this.v.copy(p).sub(this.prevP).divideScalar(dt)
     this.prevQ.copy(q)
     this.prevP.copy(p)
 
