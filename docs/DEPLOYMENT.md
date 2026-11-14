@@ -109,7 +109,7 @@ store's own admin login.
 - `GET /api/health`: `{ ok: true, data: { status: "ok", environment, database: "configured" } }`.
 - Logs: Cloudflare dashboard → Workers → `abzari-paris-preview` → Logs (Workers Logs is enabled
   in `wrangler.jsonc`; the free plan has a daily event allowance), or `npx wrangler tail`.
-- CPU time per request: Worker → Metrics, or Workers Logs (`$workers.cpuTimeMs`). The free plan allows 10 ms per request. Measured (median): pre-rendered pages 2–3 ms; API routes about 1 ms since Phase 2 (served by worker.ts before Next.js; 10 ms through Next.js in Phase 1), 3 ms with a database query; server-rendered pages about 35 ms, which is why pages stay pre-rendered (see docs/decisions/0001-nextjs-adapter.md).
+- CPU time per request: Worker → Metrics, or Workers Logs (`$workers.cpuTimeMs`). The free plan allows 10 ms per request. Measured (median): pre-rendered pages 2–3 ms; API routes about 1 ms since Phase 2 (served by worker.ts before Next.js; 10 ms through Next.js in Phase 1), 3 ms with a database query; server-rendered pages about 35 ms, which is why pages stay pre-rendered (see docs/decisions/0001-nextjs-adapter.md). Phase 3A (preview, 25 requests per route): pages 3–5 ms including the live-catalogue check on product pages; `/api/catalog` 1 ms; catalogue search 2 ms; 404 for archived or unknown products 0 ms (served from the bundled 404 page; 8–16 ms when Next.js rendered it). Occasional first requests on a fresh Worker instance take 12–23 ms.
 
 ## Free-plan limits to respect
 
