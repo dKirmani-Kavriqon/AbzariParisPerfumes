@@ -1,6 +1,6 @@
 # 0001: Running Next.js on Cloudflare Workers: OpenNext over vinext
 
-- **Status:** accepted for Phase 1; Cloudflare CPU measurements pending (see below)
+- **Status:** accepted
 - **Date:** 2026-11-14
 
 ## Context
@@ -41,7 +41,9 @@ mobile, pixel comparison, text fingerprints, console errors, image loading, 3D c
 | New security advisories | none at runtime (build-only `glob`/`minimatch`, moderate) | 10 added (9 moderate, 1 high, dev tooling) |
 | Project maturity | years in production use | README: "under active development … not yet a drop-in replacement for every … production workload" |
 | Known gaps affecting us | none found | App Router not wrapped in React Strict Mode (Next.js does) |
-| Worker CPU per request on Cloudflare | **pending** | **pending** |
+| Worker CPU per request on Cloudflare | see below | see below |
+| Worker startup time (Wrangler) | 23 ms | n/a (deployed with `cf`) |
+| Database reachable from the deployed Worker | ✅ | ✅ |
 
 ## Decision
 
@@ -55,10 +57,39 @@ path wins.
 Reconsider when vinext and the `cf` CLI leave beta, or if Worker CPU on the free plan becomes a
 constraint that vinext measurably solves.
 
-## Pending: CPU on Cloudflare
+## CPU on Cloudflare (free plan)
 
-Deploys from the Claude Code sandbox cannot upload static assets (its proxy rewrites the
-`Authorization` header Wrangler's upload uses), so both evaluation Workers deploy through GitHub
-Actions once the `CLOUDFLARE_API_TOKEN` repository secret exists. The temporary branches
-`preview/eval-opennext` and `preview/eval-vinext` are ready for that; they and their Workers
-(`kce-eval-opennext`, `kce-eval-vinext`) are deleted after measuring.
+Both evaluation Workers were deployed to workers.dev from GitHub Actions and sent identical load:
+25 requests to each of 9 routes, from one client (served by Cloudflare's IAD location). CPU per
+request comes from Workers Logs. Figures are from the second run, with both Workers warm; a first
+run against a freshly deployed Worker showed cold-start medians up to 131 ms on the server-rendered page.
+
+| Route | OpenNext CPU ms, median / max | vinext CPU ms, median / max |
+| --- | --- | --- |
+| `/` (pre-rendered, largest page) | **5** / 11 | 13 / 30 (13 of 25 over 10 ms) |
+| `/shop`, `/shop?c=oil` (pre-rendered) | **2–3** / 7 | 4–5 / 19 |
+| `/product/*`, `/about` (pre-rendered) | **2** / 5 | 2–3 / 9 |
+| `/api/health` (route handler) | 10 / 180 | **4** / 15 |
+| 404 page | 8 / 16 | 11 / 66 |
+| `/eval/ssr` (full catalogue rendered per request) | 35 / 255 | 36 / 119 |
+
+All 1,100+ measured requests succeeded; Cloudflare reported no `exceededCpu` outcomes even where
+requests used more than the documented 10 ms. That leniency is not documented and must not be relied on.
+
+What this means:
+
+- **Pre-rendered pages, most of the traffic, are cheaper on OpenNext** and fit the free plan.
+- **Server rendering costs about 35 ms per request on either adapter**, 3.5× the free-plan limit.
+  The adapter choice does not fix this; architecture does. Pages stay pre-rendered; per-user
+  views (cart, checkout, account, admin) load as static shells that call small API routes.
+- **API routes cost about 10 ms on OpenNext against 4 ms on vinext** because they pass through
+  Next.js's router. Phase 2 will serve `/api/*` from a lightweight handler in front of Next.js in
+  the same Worker (OpenNext allows a custom Worker entry) and measure again. If API routes still
+  approach the limit, the Workers Paid plan ($5/month, 30 s CPU) is the fallback, and it needs approval.
+- vinext recovers from cold starts with lower spikes (max 119 ms against 255 ms).
+
+The CPU figures do not change the decision: the two adapters trade wins, and the remaining
+differences favour OpenNext's maturity.
+
+The evaluation Workers (`kce-eval-opennext`, `kce-eval-vinext`) were deleted after measuring.
+The temporary branches `preview/eval-opennext` and `preview/eval-vinext` hold only that experiment and can be deleted.

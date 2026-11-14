@@ -58,7 +58,7 @@ from the deployed Worker.
 - `GET /api/health`: `{ ok: true, data: { status: "ok", environment, database: "configured" } }`.
 - Logs: Cloudflare dashboard → Workers → `abzari-paris-preview` → Logs (Workers Logs is enabled
   in `wrangler.jsonc`; the free plan has a daily event allowance), or `npx wrangler tail`.
-- CPU time per request: Worker → Metrics. The free plan allows 10 ms per request.
+- CPU time per request: Worker → Metrics, or Workers Logs (`$workers.cpuTimeMs`). The free plan allows 10 ms per request. Measured in Phase 1: pre-rendered pages 2–5 ms, API routes about 10 ms, server-rendered pages about 35 ms (see docs/decisions/0001-nextjs-adapter.md).
 
 ## Free-plan limits to respect
 
