@@ -36,6 +36,9 @@ import type { ApiDeps } from './deps'
 import { createRouter } from './router'
 import { getPublishedCatalog, publishCatalog } from '../catalog/publish'
 import { productBySlug, queryProducts } from '../../commerce/catalog/public'
+import { cartQuoteSchema } from '../../commerce/cart/cart'
+import { quoteCart } from '../../commerce/cart/quote'
+import { store as storeConfig } from '../../config/store'
 
 type Ctx = RouteContext<Record<string, string>> & { deps: ApiDeps }
 type AdminCtx = Ctx & { db: Db; store: StoreContext; admin: AdminIdentity; actor: string }
@@ -64,6 +67,8 @@ const admin =
     return out
   }
 
+/** A full cart is well under 2 KB. */
+const CART_BODY_LIMIT = 4 * 1024
 const param = (ctx: Ctx, key: string) => validate(idSchema, ctx.params[key])
 const okJson = (data: unknown, ctx: Ctx, status = 200) => ok(data, ctx.requestId, { status })
 
@@ -140,6 +145,27 @@ export function buildApi() {
   api.get('/api/catalog/categories', async (_req, ctx) => {
     const { catalog } = await getPublishedCatalog(publicDeps(ctx))
     return ok(catalog.categories, ctx.requestId)
+  })
+
+  // ---------- cart (public; prices and stock checked against the database) ----------
+
+  /**
+   * Prices and checks a cart. The browser sends SKUs and quantities only; the store comes from
+   * this deployment. Never cached (Cache-Control: no-store, the API default). Read-only: nothing
+   * is reserved or changed, so it is safe to repeat.
+   */
+  api.post('/api/cart/quote', async (req, ctx) => {
+    const { items } = await parseJsonBody(req, cartQuoteSchema, CART_BODY_LIMIT)
+    try {
+      return ok(await quoteCart(ctx.deps.db(), { code: ctx.deps.storeCode, currency: storeConfig.currency }, items), ctx.requestId)
+    } catch (error) {
+      if (error instanceof AppError && error.status < 500) throw error
+      // Only the kind of failure is logged: database errors can quote the query's parameters,
+      // and the cart's contents are not logged.
+      const e = error as { name?: string; code?: string; cause?: { code?: string } }
+      ctx.log.error('cart quote failed', { kind: e?.name ?? typeof error, code: e?.code ?? e?.cause?.code })
+      throw serviceUnavailable('We could not check your bag just now. Please try again in a moment.')
+    }
   })
 
   // ---------- admin: storefront publishing ----------

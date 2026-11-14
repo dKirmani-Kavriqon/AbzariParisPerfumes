@@ -4,8 +4,9 @@ Storefront for Abzari Paris, built on the Kavriqon Commerce Engine: Next.js (App
 React, TypeScript and Tailwind, deployed to Cloudflare Workers with OpenNext, and backed by Neon
 Postgres through Drizzle ORM. Everything runs on free plans.
 
-**Status:** Phase 3A. The shop shows the live catalogue from the database (managed at `/admin`):
-changes appear within seconds. The cart lives in the browser and checkout is a demo until Phase 3B.
+**Status:** Phase 3B. The shop shows the live catalogue from the database (managed at `/admin`).
+The bag keeps SKUs and quantities in the browser; prices, stock and totals are checked by the server.
+Checkout is still a demo: orders and payments arrive in later phases.
 
 ## Getting started
 
@@ -37,6 +38,7 @@ npm run dev                    # http://localhost:3000, Next.js dev server
 - [Database](docs/DATABASE.md): connection, schema, safe migrations, seeding
 - [Catalogue and inventory](docs/CATALOGUE.md): entities, isolation, money, stock ledger, images
 - [API](docs/API.md): conventions and every endpoint
+- [Shopping bag](docs/CART.md): persistence, pricing and stock checks, API
 - [Testing](docs/TESTING.md)
 - [Backups and recovery](docs/BACKUPS.md)
 - [Deployment](docs/DEPLOYMENT.md): Cloudflare, secrets, CI, preview environment

@@ -2,11 +2,10 @@
 
 import Link from 'next/link'
 import { formatShopPrice } from '../commerce/catalog/money'
-import { displayPrice, isPurchasable, leadVariant, type PublicProduct } from '../commerce/catalog/public'
-import { useCart } from '../state/cart'
+import { buyable, displayPrice, isPurchasable, leadVariant, type PublicProduct } from '../commerce/catalog/public'
+import AddToBagButton from './AddToBagButton'
 
 export default function ProductCard({ p }: { p: PublicProduct }) {
-  const add = useCart((s) => s.add)
   const variant = leadVariant(p)
   const soon = p.availability === 'coming_soon'
   const soldOut = p.availability === 'out_of_stock'
@@ -35,10 +34,15 @@ export default function ProductCard({ p }: { p: PublicProduct }) {
           </div>
         )}
       </div>
-      {isPurchasable(p) && (
-        <button className="card-add" onClick={() => add(p.slug)} aria-label={`Add ${p.name} to bag`}>
+      {isPurchasable(p) && p.variants.length > 1 && (
+        <Link href={`/product/${p.slug}`} className="card-add" aria-label={`Choose a size of ${p.name}`}>
+          Choose size
+        </Link>
+      )}
+      {isPurchasable(p) && p.variants.length === 1 && buyable(p) && (
+        <AddToBagButton className="card-add" sku={buyable(p)!.sku} label={`Add ${p.name} to bag`}>
           Add to bag
-        </button>
+        </AddToBagButton>
       )}
     </article>
   )

@@ -7,10 +7,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { motion, window4 } from '../three/motion'
 import { store } from '../config/store'
 import { formatShopPrice } from '../commerce/catalog/money'
-import { displayPrice, isPurchasable, leadVariant } from '../commerce/catalog/public'
+import { buyable, displayPrice, isPurchasable, leadVariant } from '../commerce/catalog/public'
 import { noteDescription, noteImage } from '../data/notes'
 import { useCatalog } from '../state/catalog'
-import { useCart } from '../state/cart'
+import AddToBagButton from './AddToBagButton'
 
 gsap.registerPlugin(ScrollTrigger)
 // Start fetching the 3D chunk as soon as this module is evaluated, in parallel with the
@@ -39,7 +39,6 @@ export default function RawahStory() {
   // three.js only exists in the browser, so the canvas mounts after hydration
   // (false while rendering on the server and during hydration, true afterwards).
   const mounted = useSyncExternalStore(noSubscribe, () => true, () => false)
-  const add = useCart((s) => s.add)
   const heroSlug = store.catalogue.heroProductSlug
   const hero = useCatalog().bySlug(heroSlug)
   const heroVariant = hero && leadVariant(hero)
@@ -111,8 +110,8 @@ export default function RawahStory() {
             </p>
           )}
           <div className="story-actions">
-            {hero && isPurchasable(hero) ? (
-              <button className="btn btn-gold" onClick={() => add(heroSlug)}>Add to bag</button>
+            {hero && isPurchasable(hero) && buyable(hero) ? (
+              <AddToBagButton className="btn btn-gold" sku={buyable(hero)!.sku}>Add to bag</AddToBagButton>
             ) : (
               <button className="btn btn-gold" disabled aria-disabled="true">{hero?.availability === 'coming_soon' ? 'Coming soon' : 'Sold out'}</button>
             )}

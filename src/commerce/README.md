@@ -22,7 +22,7 @@ and in each client's own database.
 | Module | Phase | Responsibility |
 | --- | --- | --- |
 | `catalog/` | 2 ✅ | Products, categories, variants, SKUs, prices, stock and its ledger, images ([docs](../../docs/CATALOGUE.md)) |
-| `cart/` | 2 | Server-side cart pricing and validation |
+| `cart/` | 3B ✅ | Bag rules shared with the browser, server-side pricing and stock checks ([docs](../../docs/CART.md)) |
 | `checkout/` | 2 | Address, shipping rules, order creation |
 | `orders/` | 2–5 | Order lifecycle and status history |
 | `payments/` | 3 | Payment intent and verification, provider-agnostic (Razorpay adapter in `src/server/integrations`) |

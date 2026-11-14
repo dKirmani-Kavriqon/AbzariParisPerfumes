@@ -1,22 +1,30 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { formatShopPrice } from '../commerce/catalog/money'
-import { leadVariant } from '../commerce/catalog/public'
-import { useCatalog } from '../state/catalog'
-import { cartTotal, unitPrice, useCart } from '../state/cart'
+import { cartStore, useCart } from '../state/cart'
+import { useCartView } from '../state/cart-view'
 
 export default function Checkout() {
-  const { lines, clear } = useCart()
+  const { items, clear, refresh, hydrated, status, error, setOpen, acknowledgePrices } = useCart()
+  const view = useCartView()
   const [order, setOrder] = useState<string | null>(null)
   const [pay, setPay] = useState('upi')
-  const { catalog, bySlug } = useCatalog()
-  const total = cartTotal(lines, catalog)
-  const money = (minor: number) => formatShopPrice(minor, catalog.currency)
+  const money = (minor: number) => formatShopPrice(minor, view.currency)
+  const total = view.subtotalMinor
+
+  // Opening checkout always rechecks prices and stock (the bag may have been sitting for days).
+  // On a full page load, restoring the bag has already started that check.
+  useEffect(() => {
+    const s = cartStore.getState()
+    if (s.items.length && s.status !== 'checking') void s.refresh()
+  }, [])
+  useEffect(() => () => acknowledgePrices(), [acknowledgePrices])
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
+    if (!view.canCheckout) return
     setOrder('AZ' + Math.floor(100000 + Math.random() * 900000))
     clear()
     window.scrollTo(0, 0)
@@ -34,7 +42,9 @@ export default function Checkout() {
     )
   }
 
-  if (lines.length === 0) {
+  if (!hydrated) return <div className="page wrap" style={{ minHeight: '60vh' }} aria-busy="true" />
+
+  if (items.length === 0) {
     return (
       <div className="page wrap narrow center">
         <h1 className="display">Your bag is empty</h1>
@@ -81,26 +91,43 @@ export default function Checkout() {
               </label>
             ))}
           </fieldset>
-          <button className="btn btn-dark btn-block" type="submit">Place order · {money(total)}</button>
+          {status === 'error' && (
+            <p className="line-alert" role="alert">
+              {error}{' '}
+              <button type="button" className="link-btn" onClick={() => void refresh()}>Try again</button>
+            </p>
+          )}
+          <button className="btn btn-dark btn-block" type="submit" disabled={!view.canCheckout} aria-disabled={!view.canCheckout}>
+            {view.canCheckout && total != null ? `Place order · ${money(total)}` : view.checking ? 'Checking your bag…' : 'Place order'}
+          </button>
           <p className="fine">Demo checkout. No payment is taken.</p>
         </form>
         <aside className="summary">
           <h2>Order summary</h2>
           <ul>
-            {lines.map((l) => {
-              const p = bySlug(l.slug)
-              if (!p) return null
-              return (
-                <li key={l.slug}>
-                  <span className="summary-img"><img src={p.images[0]?.url} alt="" /><b>{l.qty}</b></span>
-                  <span className="summary-name">{p.name}<small>{leadVariant(p)?.title || p.shortDescription}</small></span>
-                  <span>{money(unitPrice(p) * l.qty)}</span>
-                </li>
-              )
-            })}
+            {view.rows.map((r) => (
+              <li key={r.sku} className={r.line && r.line.status !== 'ok' ? 'is-unavailable' : ''}>
+                <span className="summary-img">{r.image && <img src={r.image.url} alt="" />}<b>{r.quantity}</b></span>
+                <span className="summary-name">
+                  {r.name}
+                  <small>{r.size}</small>
+                  {r.line?.status === 'insufficient_stock' && <small className="line-alert">Only {r.line.maxQuantity} available</small>}
+                  {r.line?.status === 'sold_out' && <small className="line-alert">Sold out</small>}
+                  {r.line?.status === 'unavailable' && <small className="line-alert">No longer available</small>}
+                  {r.previousPriceMinor != null && <small className="line-note">Price updated (was {money(r.previousPriceMinor)})</small>}
+                </span>
+                <span>{r.current && r.line?.status === 'ok' && r.line.lineTotalMinor != null ? money(r.line.lineTotalMinor) : r.line?.status === 'ok' || !r.line ? '…' : ''}</span>
+              </li>
+            ))}
           </ul>
+          {view.hasIssues && (
+            <p className="line-alert" role="alert">
+              Some items are sold out, unavailable or short on stock.{' '}
+              <button type="button" className="link-btn" onClick={() => setOpen(true)}>Review your bag</button>
+            </p>
+          )}
           <div className="row-between"><span>Shipping</span><span>Free</span></div>
-          <div className="row-between total"><span>Total</span><strong>{money(total)}</strong></div>
+          <div className="row-between total"><span>Total</span><strong aria-live="polite">{view.canCheckout && total != null ? money(total) : view.checking ? 'Checking…' : '—'}</strong></div>
         </aside>
       </div>
     </div>
