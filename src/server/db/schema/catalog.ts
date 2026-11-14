@@ -218,7 +218,8 @@ export const productImages = pgTable(
       foreignColumns: [productVariants.storeId, productVariants.productId, productVariants.id],
     }),
     uniqueIndex('product_images_one_primary').on(t.productId).where(sql`${t.isPrimary}`),
-    unique('product_images_store_key_unique').on(t.storeId, t.storageKey),
+    // The same file may illustrate several products (e.g. a shared lifestyle photo), but only once per product.
+    unique('product_images_product_key_unique').on(t.productId, t.storageKey),
     index('product_images_product_position_idx').on(t.productId, t.position),
     check('product_images_source_values', sql`${t.source} in ('static', 'object')`),
     check('product_images_alt_length', sql`char_length(${t.altText}) <= 250`),

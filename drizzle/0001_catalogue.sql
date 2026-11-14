@@ -75,7 +75,7 @@ CREATE TABLE "product_images" (
 	"position" integer DEFAULT 0 NOT NULL,
 	"is_primary" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "product_images_store_key_unique" UNIQUE("store_id","storage_key"),
+	CONSTRAINT "product_images_product_key_unique" UNIQUE("product_id","storage_key"),
 	CONSTRAINT "product_images_source_values" CHECK ("product_images"."source" in ('static', 'object')),
 	CONSTRAINT "product_images_alt_length" CHECK (char_length("product_images"."alt_text") <= 250),
 	CONSTRAINT "product_images_size_positive" CHECK ("product_images"."byte_size" is null or "product_images"."byte_size" > 0)

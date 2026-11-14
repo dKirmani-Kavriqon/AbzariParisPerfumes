@@ -1,5 +1,5 @@
 {
-  "id": "962056e7-0658-40a6-b139-9569eb54ffd5",
+  "id": "32dd7339-0708-46d6-a4e6-9cfbcc285f08",
   "prevId": "da07585b-23a2-4157-bb73-5894657ddd3f",
   "version": "7",
   "dialect": "postgresql",
@@ -756,11 +756,11 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "product_images_store_key_unique": {
-          "name": "product_images_store_key_unique",
+        "product_images_product_key_unique": {
+          "name": "product_images_product_key_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "store_id",
+            "product_id",
             "storage_key"
           ]
         }

@@ -53,8 +53,10 @@ export function toDecimalString(minor: number, currency: string) {
   return `${s.slice(0, -digits)}.${s.slice(-digits)}`
 }
 
-/** Minor units to a display string, e.g. formatMoney(149950, 'INR', 'en-IN') → "₹1,499.50". */
+/** Minor units to a display string: 149950 → "₹1,499.50", 150000 → "₹1,500". */
 export function formatMoney(minor: number, currency: string, locale = 'en-IN') {
   const digits = minorUnitDigits(currency)
-  return new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: digits }).format(minor / 10 ** digits)
+  // Whole amounts without decimals (₹1,500); otherwise all of them (₹749.50, never ₹749.5).
+  const shown = minor % 10 ** digits === 0 ? 0 : digits
+  return new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: shown, maximumFractionDigits: shown }).format(minor / 10 ** digits)
 }

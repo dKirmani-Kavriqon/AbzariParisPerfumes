@@ -124,6 +124,15 @@ describe('images (database side)', () => {
     expect(await status(addImage(db, store.id, p.id, { ...img(uniq('v')), variantId: q.variants[0].id }))).toBe(422)
   })
 
+  it('lets products share a site photo, but not attach the same one twice', async () => {
+    const p = await productWithStock(store, 0)
+    const q = await productWithStock(store, 0)
+    const shared = { source: 'static' as const, storageKey: `/products/${uniq('shared')}.webp` }
+    await addImage(db, store.id, p.id, shared)
+    await expect(addImage(db, store.id, q.id, shared)).resolves.toMatchObject({ productId: q.id })
+    expect(await status(addImage(db, store.id, p.id, shared))).toBe(409)
+  })
+
   it('allows only one primary image per product (database index)', async () => {
     const p = await productWithStock(store, 0)
     await addImage(db, store.id, p.id, img(uniq('a')))

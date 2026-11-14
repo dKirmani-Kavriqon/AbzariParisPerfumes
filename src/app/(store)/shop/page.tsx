@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import Shop, { ShopView } from '../../views/Shop'
+import Shop, { ShopView } from '../../../views/Shop'
 
 export default function ShopPage() {
   return (

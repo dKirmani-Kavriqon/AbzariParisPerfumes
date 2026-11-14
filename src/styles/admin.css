@@ -1,0 +1,58 @@
+/* Admin screens. Every rule is scoped under .admin so the storefront is never affected.
+   Uses the site's tokens (site.css :root) and its .btn / .form / .field / .eyebrow / .display styles. */
+.admin { min-height: 100vh; background: var(--paper); }
+.admin-bar { position: sticky; top: 0; z-index: 10; background: var(--night); color: var(--ivory); border-bottom: 1px solid rgba(200, 162, 90, 0.25); }
+.admin-bar-inner { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); min-height: 60px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.admin-brand { font-family: var(--serif); font-size: 22px; letter-spacing: 0.02em; color: var(--gold-hi); }
+.admin-nav { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; }
+.admin-nav a { opacity: 0.75; padding: 6px 0; border-bottom: 1px solid transparent; }
+.admin-nav a:hover, .admin-nav a.active { opacity: 1; border-color: var(--gold); }
+.admin-who { margin-left: auto; font-size: 12px; color: var(--muted); }
+.admin-main { max-width: var(--wrap); margin: 0 auto; padding: clamp(24px, 4vw, 48px) var(--gutter) 96px; }
+.admin-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.admin-head .display { font-size: clamp(32px, 4vw, 44px); margin: 4px 0 0; }
+.admin-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: clamp(16px, 2.4vw, 24px); }
+.admin-card + .admin-card { margin-top: 20px; }
+.admin-card h2 { font-family: var(--serif); font-weight: 500; font-size: 26px; margin: 0 0 14px; }
+.admin-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.admin-table th { text-align: left; font-weight: 500; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.admin-table td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.admin-table tr:hover td { background: rgba(200, 162, 90, 0.05); }
+.admin-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; background: var(--ivory); }
+.admin-badge { display: inline-block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--ivory); color: var(--ink-2); }
+.admin-badge.active { background: #e3f1e5; color: #22613a; }
+.admin-badge.draft, .admin-badge.inactive, .admin-badge.hidden { background: #f1ede4; color: #6b5f4d; }
+.admin-badge.archived { background: #eee; color: #777; }
+.admin-badge.low { background: #fbe9e2; color: #9a3b1f; }
+.admin .btn { min-height: 40px; padding: 0 18px; font-size: 13px; }
+.admin .btn-line { border: 1px solid var(--line); background: #fff; color: var(--ink); }
+.admin .btn-line:hover { border-color: var(--gold); }
+.admin .btn-danger { border: 1px solid #e3b5a5; background: #fff; color: #9a3b1f; }
+.admin .field select, .admin .field input[type='number'], .admin .field input[type='search'] {
+  font: inherit; font-size: 15px; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; min-height: 44px;
+}
+.admin .field input, .admin .field textarea { background: #fff; }
+.admin .field-error { color: #9a3b1f; font-size: 12px; }
+.admin .grid-2 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.admin .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.admin .notice { padding: 12px 14px; border-radius: 8px; font-size: 14px; background: var(--ivory); }
+.admin .notice.error { background: #fbe9e2; color: #7d2f18; }
+.admin .notice.ok { background: #e3f1e5; color: #22613a; }
+.admin .muted { color: var(--muted); }
+.admin .check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.admin .images { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.admin .image-tile { border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: grid; gap: 6px; background: #fff; }
+.admin .image-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; background: var(--ivory); }
+.admin .image-tile.primary { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(200, 162, 90, 0.25); }
+.admin .tree-indent { display: inline-block; width: 18px; }
+@media (max-width: 640px) {
+  /* Keep the bar compact on phones: one swipeable menu line, not pinned over the content. */
+  .admin-bar { position: static; }
+  .admin-bar-inner { gap: 6px 16px; padding-top: 10px; padding-bottom: 6px; }
+  .admin-brand { font-size: 19px; }
+  .admin-who { margin-left: auto; font-size: 11px; }
+  .admin-nav { order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto; gap: 16px; font-size: 12px; scrollbar-width: none; }
+  .admin-nav::-webkit-scrollbar { display: none; }
+  .admin-nav a { white-space: nowrap; }
+}

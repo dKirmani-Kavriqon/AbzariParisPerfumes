@@ -23,7 +23,7 @@ const constraintMessages: Record<string, { status: number; field: string; messag
   product_categories_pk: { status: 409, field: 'categoryIds', message: 'The product is already in this category.' },
   product_categories_category_fk: { status: 422, field: 'categoryIds', message: 'A category does not exist in this store.' },
   product_images_variant_fk: { status: 422, field: 'variantId', message: 'The variant does not belong to this product.' },
-  product_images_store_key_unique: { status: 409, field: 'image', message: 'This image is already attached.' },
+  product_images_product_key_unique: { status: 409, field: 'image', message: 'This image is already attached to this product.' },
   inventory_available_non_negative: { status: 409, field: 'quantityChange', message: 'Stock cannot go below zero.' },
   categories_parent_same_store_fk: { status: 422, field: 'parentId', message: 'The parent category does not exist in this store.' },
 }

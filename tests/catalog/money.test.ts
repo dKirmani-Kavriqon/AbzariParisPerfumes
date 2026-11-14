@@ -23,6 +23,8 @@ describe('money (integer minor units, no floating point)', () => {
     expect(toDecimalString(5, 'INR')).toBe('0.05')
     expect(toDecimalString(1500, 'JPY')).toBe('1500')
     expect(formatMoney(150000, 'INR')).toBe('₹1,500')
+    expect(formatMoney(74950, 'INR')).toBe('₹749.50')
+    expect(formatMoney(74905, 'INR')).toBe('₹749.05')
   })
 
   it('knows each currency’s minor unit and rejects unknown codes', () => {

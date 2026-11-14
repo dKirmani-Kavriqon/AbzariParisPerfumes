@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
-import { bySlug, products } from '../../../data/products'
-import ProductPage from '../../../views/ProductPage'
+import { bySlug, products } from '../../../../data/products'
+import ProductPage from '../../../../views/ProductPage'
 
 // Every product page is built ahead of time; any other slug is a 404.
 export const dynamicParams = false
