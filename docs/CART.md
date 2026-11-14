@@ -8,9 +8,9 @@ reservation are later phases.
 
 ```
 browser (localStorage)                         Worker                              Neon
-{ store, items: [{ sku, quantity }],   POST /api/cart/quote  ──▶  resolve store (server)  ──▶  one batch:
-  updatedAt, seen }                    { items: [{sku,qty}] }       validate (strict)            variants + products + stock
-        ▲                                                         price in integer paise        primary images
+{ store, items: [{ sku, quantity }],   POST /api/cart/quote  ──▶  validate (strict)  ──▶  one SQL statement:
+  updatedAt, seen }                    { items: [{sku,qty}] }       store from config        store + variants + products
+        ▲                                                         price in integer paise   + stock + primary image
         └──────────── lines, prices, status, subtotal, canCheckout ◀──────────────────────────────┘
 ```
 
@@ -91,8 +91,8 @@ private browsing loses it; it is not kept on the server, so the shop cannot see 
 
 ## Store isolation
 
-The store comes from `src/config/store.ts` on the server (`resolveStore`), never from the
-request. Every query in `quoteCart` filters by that store's id, including the join to products
+The store comes from `src/config/store.ts` on the server, never from the request. The quote's
+SQL statement looks the store up by that code and filters every table by its id, including the join to products
 and images, so another store's SKU is simply "unavailable", and when two stores use the same SKU
 each deployment sees its own. A request naming a store is refused. Tests:
 `tests/cart/cart-quote.test.ts` ("store isolation").
@@ -111,8 +111,9 @@ each deployment sees its own. A request naming a store is refused. Tests:
 
 ## Cost and performance
 
-- One database round trip per quote (two queries in one batch), only when a shopper has a bag.
-  Browsing without a bag never calls it.
+- One SQL statement per quote (it also finds the store, so a fresh Worker instance needs no extra
+  lookup), only when a shopper has a bag. Browsing without a bag never calls it, and an empty bag
+  is answered without the database.
 - Worker CPU per quote and latency: see the PR / [DEPLOYMENT.md](DEPLOYMENT.md#checking-a-deployment).
 - Neon's free plan includes 100 CU-hours a month and the database sleeps after 5 idle minutes. A
   quote wakes it; a small shop's bag activity costs a few CU-hours a month. If bag traffic ever

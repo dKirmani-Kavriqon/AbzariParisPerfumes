@@ -262,7 +262,7 @@ describe('store isolation', () => {
 
   it('isolates stores in the service as well', async () => {
     const theirs = await make(other)
-    const q = await quoteCart(db, store, [{ sku: theirs.variants[0].sku, quantity: 1 }])
+    const q = await quoteCart(db, { code: store.code, currency: 'INR' }, [{ sku: theirs.variants[0].sku, quantity: 1 }])
     expect(q.lines[0].status).toBe('unavailable')
   })
 })

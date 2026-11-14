@@ -38,6 +38,7 @@ import { getPublishedCatalog, publishCatalog } from '../catalog/publish'
 import { productBySlug, queryProducts } from '../../commerce/catalog/public'
 import { cartQuoteSchema } from '../../commerce/cart/cart'
 import { quoteCart } from '../../commerce/cart/quote'
+import { store as storeConfig } from '../../config/store'
 
 type Ctx = RouteContext<Record<string, string>> & { deps: ApiDeps }
 type AdminCtx = Ctx & { db: Db; store: StoreContext; admin: AdminIdentity; actor: string }
@@ -156,9 +157,7 @@ export function buildApi() {
   api.post('/api/cart/quote', async (req, ctx) => {
     const { items } = await parseJsonBody(req, cartQuoteSchema, CART_BODY_LIMIT)
     try {
-      const db = ctx.deps.db()
-      const store = await resolveStore(db, ctx.deps.storeCode)
-      return ok(await quoteCart(db, store, items), ctx.requestId)
+      return ok(await quoteCart(ctx.deps.db(), { code: ctx.deps.storeCode, currency: storeConfig.currency }, items), ctx.requestId)
     } catch (error) {
       if (error instanceof AppError && error.status < 500) throw error
       // Only the kind of failure is logged: database errors can quote the query's parameters,
