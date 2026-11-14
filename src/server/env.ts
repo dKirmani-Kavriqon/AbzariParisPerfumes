@@ -23,6 +23,20 @@ const serverEnvSchema = z.object({
    * deep check is disabled, so anonymous traffic cannot keep the database awake.
    */
   HEALTH_CHECK_TOKEN: z.string().min(32, 'must be at least 32 characters').optional(),
+  /**
+   * Admin access through Cloudflare Access (Zero Trust, free up to 50 users). Both must be set
+   * for admin to work on a deployed Worker; otherwise every admin request is refused.
+   * Team domain, e.g. "kavriqon.cloudflareaccess.com"; AUD is the Access application's audience tag.
+   */
+  ADMIN_ACCESS_TEAM_DOMAIN: z
+    .string()
+    .regex(/^[a-z0-9-]+\.cloudflareaccess\.com$/, 'must look like <team>.cloudflareaccess.com')
+    .optional(),
+  ADMIN_ACCESS_AUD: z.string().regex(/^[a-f0-9]{64}$/, 'must be the 64-character Access audience tag').optional(),
+  /** Optional comma-separated allowlist of admin emails, checked in addition to the Access policy. */
+  ADMIN_EMAILS: z.string().max(2000).optional(),
+  /** "1" opens admin on localhost when APP_ENV=development. Ignored everywhere else. */
+  ADMIN_LOCAL_DEV: z.enum(['0', '1']).optional(),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>

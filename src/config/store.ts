@@ -15,7 +15,8 @@ export type StoreConfig = {
   /** Where the store will live once launched. Used for canonical URLs, not for routing. */
   siteUrl: string
   locale: string
-  currency: 'INR'
+  /** ISO 4217 code of the store's default currency (prices are stored per variant with their own code). */
+  currency: string
   branding: {
     themeColor: string
     favicon: string

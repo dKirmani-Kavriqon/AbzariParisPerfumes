@@ -52,6 +52,7 @@ export const forbidden = (message = 'You do not have access to this.') => new Ap
 export const notFound = (message = 'Not found.') => new AppError(404, 'not_found', message)
 export const methodNotAllowed = (allowed: string[]) =>
   new AppError(405, 'method_not_allowed', 'This method is not allowed here.', { details: { allowed } })
+export const conflict = (message: string, details?: unknown) => new AppError(409, 'conflict', message, { details })
 export const payloadTooLarge = (limitBytes: number) =>
   new AppError(413, 'payload_too_large', 'The request body is too large.', { details: { limitBytes } })
 export const unsupportedMediaType = (expected: string) =>

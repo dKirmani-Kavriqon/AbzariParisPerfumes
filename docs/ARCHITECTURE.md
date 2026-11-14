@@ -6,12 +6,14 @@
 Browser
   │  HTML, JS, CSS, images
   ▼
-Cloudflare Worker  (one per client per environment, free plan)
-  ├─ Static assets: pre-rendered pages, /_next/static, /products, /notes   ← no Worker CPU
-  ├─ Next.js (OpenNext) for anything dynamic
-  │    └─ /api/* route handlers  →  src/server/http (validation, errors, logging)
-  │                                  └─ src/commerce (business rules, from Phase 2)
-  │                                       └─ src/server/db  →  Neon Postgres over HTTPS
+Cloudflare Worker  (worker.ts; one per client per environment, free plan)
+  ├─ Static assets: /_next/static, /products, /notes                         ← no Worker CPU
+  ├─ /api/*, /media/*  →  API router (src/server/api), skipping Next.js
+  │    ├─ src/server/http (validation, errors, logging) and src/server/auth (admin boundary)
+  │    ├─ src/commerce/catalog (business rules)  →  src/server/db  →  Neon Postgres over HTTPS
+  │    └─ src/server/storage (ObjectStore)  →  R2 binding (when enabled)
+  ├─ /admin/*  →  only for a verified admin, otherwise the 404 page
+  └─ everything else  →  Next.js via OpenNext (pre-rendered pages)
   └─ Worker secrets: DATABASE_URL, HEALTH_CHECK_TOKEN (later: payment and email keys)
 ```
 
@@ -23,8 +25,8 @@ for what genuinely changes per request (cart totals, orders, admin).
 
 | Folder | Holds | May import |
 | --- | --- | --- |
-| `src/app/` | Routes: `page.tsx`, `layout.tsx`, `route.ts`. Thin. | everything below |
-| `src/views/` | Page bodies | components, config, data, state |
+| `src/app/` | Routes: `(store)/` storefront pages, `admin/` admin pages, `api/` and `media/` adapters. Thin. | everything below |
+| `src/views/` | Page bodies (`admin/` holds the admin screens) | components, config, data, state, `src/commerce/catalog` browser-safe helpers |
 | `src/components/`, `src/three/` | UI | config, data, state |
 | `src/state/` | Browser state (cart in localStorage) | data |
 | `src/config/` | Public per-client settings, security headers | nothing app-specific |
@@ -67,7 +69,15 @@ Every route handler is wrapped in `route()` from `src/server/http/route.ts`:
   `.env*` and `.dev.vars*` except the `*.example` templates.
 - `/api/health` never touches the database unless called with the health token, so anonymous
   traffic cannot keep the metered database compute awake.
-- No authentication yet (Phase 5 adds admin login, using the Neon Auth already set up on the project).
+- Admin access fails closed: on deployed Workers only a verified Cloudflare Access token is accepted (see DEPLOYMENT.md); locally an explicit development switch. Admin writes also need a same-origin request with `X-Requested-With: kce-admin`. Phase 5 replaces Access with the store's own admin login.
+
+## Admin screens
+
+`/admin` pages are pre-rendered static shells that load their data from the admin API in the
+browser, so viewing the admin costs no server rendering. The product editor is
+`/admin/product?id=…` (a query string rather than `/admin/products/[id]`, which would render on
+every request). The admin has its own layout and stylesheet (`src/styles/admin.css`, every rule
+scoped under `.admin`) built on the site's tokens, fonts and form styles.
 
 ## Styling
 

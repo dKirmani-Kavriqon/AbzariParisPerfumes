@@ -21,7 +21,7 @@ and in each client's own database.
 
 | Module | Phase | Responsibility |
 | --- | --- | --- |
-| `catalog/` | 2 | Products, variants, prices, stock levels |
+| `catalog/` | 2 ✅ | Products, categories, variants, SKUs, prices, stock and its ledger, images ([docs](../../docs/CATALOGUE.md)) |
 | `cart/` | 2 | Server-side cart pricing and validation |
 | `checkout/` | 2 | Address, shipping rules, order creation |
 | `orders/` | 2–5 | Order lifecycle and status history |
@@ -29,4 +29,5 @@ and in each client's own database.
 | `notifications/` | 4 | Which emails go out when (Resend adapter in `src/server/integrations`) |
 | `admin/` | 5 | Store owner operations |
 
-Modules are added when their phase starts, not before.
+Modules are added when their phase starts, not before. Files in `catalog/` that are safe for
+the browser (money, slug, validation, image-url) import nothing server-only, so admin forms reuse them.

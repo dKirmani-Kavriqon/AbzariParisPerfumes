@@ -1,0 +1,10 @@
+{
+  // Local development only (`next dev`). Simulates Cloudflare bindings on your machine via
+  // OpenNext's initOpenNextCloudflareForDev; nothing here is deployed or touches the account.
+  // The R2 bucket below is stored under .wrangler/state (git-ignored).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "abzari-paris-local",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "r2_buckets": [{ "binding": "MEDIA_BUCKET", "bucket_name": "abzari-paris-media-local" }]
+}

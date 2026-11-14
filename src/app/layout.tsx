@@ -8,10 +8,6 @@ import '@fontsource-variable/jost'
 import '../styles/tailwind.css'
 import '../styles/site.css'
 import { store } from '../config/store'
-import Header from '../components/Header'
-import Footer from '../components/Footer'
-import CartDrawer from '../components/CartDrawer'
-import ClientEffects from '../components/ClientEffects'
 
 export const metadata: Metadata = {
   title: store.name,
@@ -28,13 +24,8 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <ClientEffects />
-        <Header />
-        <CartDrawer />
-        <main>{children}</main>
-        <Footer />
-      </body>
+      {/* The storefront frame lives in app/(store)/layout.tsx; the admin has its own layout. */}
+      <body>{children}</body>
     </html>
   )
 }

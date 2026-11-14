@@ -1,10 +1,22 @@
-import { notFound } from '../../../server/http/errors'
-import { route } from '../../../server/http/route'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { defaultDeps, type WorkerBindings } from '../../../server/api/deps'
+import { api } from '../../../server/api/routes'
 
-// Unknown /api/* paths answer with the standard JSON error instead of the HTML 404 page.
-const missing = route(() => {
-  throw notFound('There is no API endpoint at this address.')
-})
-
+/*
+ * Next.js entry for /api/*. On Cloudflare the custom Worker (worker.ts) answers /api/* before
+ * Next.js runs, so this file is only used by `next dev` / `next start` and as a fallback. Both
+ * paths use the same router, so behaviour is identical.
+ */
 export const dynamic = 'force-dynamic'
-export { missing as GET, missing as POST, missing as PUT, missing as PATCH, missing as DELETE }
+
+function bindings(): WorkerBindings {
+  try {
+    return getCloudflareContext().env as WorkerBindings
+  } catch {
+    return {}
+  }
+}
+
+const handler = (request: Request) => api().handle(request, defaultDeps(bindings()))
+
+export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE }
