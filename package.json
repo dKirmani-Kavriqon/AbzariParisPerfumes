@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "oxlint",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "preview": "npm run build:worker && opennextjs-cloudflare preview",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit -p .",
     "db:generate": "drizzle-kit generate",
@@ -15,8 +15,8 @@
     "db:verify": "node --env-file-if-exists=.env.local scripts/db/verify.ts",
     "test": "vitest run",
     "check:bundle": "node scripts/check-client-bundle.mjs",
-    "deploy:preview": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "build:worker": "opennextjs-cloudflare build",
+    "deploy:preview": "npm run build:worker && opennextjs-cloudflare deploy",
+    "build:worker": "opennextjs-cloudflare build && node scripts/build/not-found-page.ts",
     "db:seed": "node --env-file-if-exists=.env.local scripts/db/seed-catalogue.ts"
   },
   "dependencies": {

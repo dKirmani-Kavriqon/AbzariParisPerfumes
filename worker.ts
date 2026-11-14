@@ -17,6 +17,9 @@ import { requireAdmin } from './src/server/auth/admin'
 import { getServerEnv } from './src/server/env'
 import { getPublishedCatalog } from './src/server/catalog/publish'
 import { createLogger } from './src/server/log'
+import { securityHeaders } from './src/config/security-headers'
+// Written by scripts/build/not-found-page.ts after the OpenNext build.
+import notFoundHtml from './.open-next/not-found.html'
 
 type Ctx = { waitUntil(p: Promise<unknown>): void; passThroughOnException(): void }
 type NextHandler = { fetch(request: Request, env: WorkerBindings, ctx: Ctx): Promise<Response> }
@@ -33,7 +36,7 @@ export default {
       const deps = defaultDeps(env)
       const published = await getPublishedCatalog({ ...deps, log: createLogger({ path }) }).catch(() => null)
       if (published) {
-        if (!published.catalog.products.some((p) => p.slug === product[1])) return notFoundPage(request, url, env, ctx)
+        if (!published.catalog.products.some((p) => p.slug === product[1])) return notFoundPage()
         const res = await (nextWorker as NextHandler).fetch(request, env, ctx)
         if (res.status !== 404) return res
         // Live in the catalogue but newer than this build: the live product page, at this address.
@@ -47,7 +50,7 @@ export default {
       try {
         await requireAdmin(request, getServerEnv())
       } catch {
-        return notFoundPage(request, url, env, ctx)
+        return notFoundPage()
       }
     }
 
@@ -55,8 +58,12 @@ export default {
   },
 }
 
-/** The site's own 404 page, rendered for an address that cannot exist. */
-async function notFoundPage(request: Request, url: URL, env: WorkerBindings, ctx: Ctx) {
-  const res = await (nextWorker as NextHandler).fetch(new Request(new URL('/_not-available', url), { headers: request.headers }), env, ctx)
-  return new Response(res.body, { status: 404, headers: res.headers })
+/** The site's own pre-rendered 404 page, served without running Next.js (about 1 ms of CPU). */
+function notFoundPage() {
+  const headers = new Headers({
+    'content-type': 'text/html; charset=utf-8',
+    'cache-control': 'private, no-cache, no-store, max-age=0, must-revalidate',
+  })
+  for (const { key, value } of securityHeaders) headers.set(key, value)
+  return new Response(notFoundHtml, { status: 404, headers })
 }
