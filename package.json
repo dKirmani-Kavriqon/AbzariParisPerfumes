@@ -6,16 +6,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "lint": "oxlint --deny-warnings=false",
-    "preview": "vite preview",
+    "lint": "oxlint",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "start": "next start",
-    "typecheck": "tsc --noEmit -p .",
+    "typecheck": "next typegen && tsc --noEmit -p .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/db/migrate.ts",
     "db:verify": "node --env-file-if-exists=.env.local scripts/db/verify.ts",
     "test": "vitest run",
     "check:bundle": "node scripts/check-client-bundle.mjs",
-    "deploy:preview": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "deploy:preview": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "build:worker": "opennextjs-cloudflare build"
   },
   "dependencies": {
     "@fontsource-variable/jost": "^5.3.0",
