@@ -1,5 +1,7 @@
+'use client'
+
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import { bySlug, formatINR } from '../data/products'
 import { cartTotal, useCart } from '../state/cart'
 
@@ -23,7 +25,7 @@ export default function Checkout() {
         <h1 className="display">Thank you.</h1>
         <p className="lede">Your order is in. We will be in touch when it ships.</p>
         <p className="fine">This is a demo store. No payment was taken and nothing will ship.</p>
-        <Link to="/shop" className="btn btn-dark">Keep browsing</Link>
+        <Link href="/shop" className="btn btn-dark">Keep browsing</Link>
       </div>
     )
   }
@@ -32,7 +34,7 @@ export default function Checkout() {
     return (
       <div className="page wrap narrow center">
         <h1 className="display">Your bag is empty</h1>
-        <Link to="/shop" className="btn btn-dark">Browse the collection</Link>
+        <Link href="/shop" className="btn btn-dark">Browse the collection</Link>
       </div>
     )
   }

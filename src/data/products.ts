@@ -75,7 +75,7 @@ export const products: Product[] = [
 ]
 
 // Every product has a photo cut from the live store at /products/<slug>.webp
-const B = import.meta.env.BASE_URL
+const B = '/'
 for (const p of products) p.image ??= `${B}products/${p.slug}.webp`
 bySlugRaw('rawah')!.gallery = [`${B}products/rawah-hero.webp`, `${B}products/rawah-duo.webp`, `${B}products/rawah-notes.webp`]
 bySlugRaw('voyage')!.gallery = [`${B}products/voyage-hero.webp`, `${B}products/voyage.webp`]
@@ -97,7 +97,7 @@ export const noteDescription: Record<string, string> = {
   Metallic: 'A cool mineral edge that keeps the base from feeling heavy.',
 }
 
-export const noteImage = (note: string) => `${import.meta.env.BASE_URL}notes/${note.toLowerCase().replace(/\s+/g, '-')}.webp`
+export const noteImage = (note: string) => `/notes/${note.toLowerCase().replace(/\s+/g, '-')}.webp`
 export const hasNoteImage = (note: string) =>
   ['woody', 'balsamic', 'powdery', 'musky', 'warm spicy', 'tobacco', 'oud', 'amber', 'metallic'].includes(note.toLowerCase())
 

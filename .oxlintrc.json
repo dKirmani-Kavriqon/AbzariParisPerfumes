@@ -1,8 +1,58 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
+  "plugins": [
+    "react",
+    "typescript",
+    "oxc",
+    "nextjs",
+    "import"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "ignorePatterns": [
+    ".next",
+    ".open-next",
+    ".wrangler",
+    "node_modules",
+    "drizzle"
+  ],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+    "react/exhaustive-deps": "warn",
+    "react/react-in-jsx-scope": "off",
+    "nextjs/no-img-element": "off",
+    "import/no-cycle": "error",
+    "import/no-unassigned-import": [
+      "warn",
+      {
+        "allow": [
+          "**/*.css",
+          "@fontsource*/**",
+          "@fontsource-variable/*",
+          "server-only"
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/three/**",
+        "src/components/**",
+        "src/views/**"
+      ],
+      "rules": {
+        "react/immutability": "warn",
+        "react/refs": "warn",
+        "react/set-state-in-effect": "warn"
+      }
+    }
+  ]
 }

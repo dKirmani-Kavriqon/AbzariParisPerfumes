@@ -35,3 +35,9 @@ dist-preview
 *.key
 .neon
 .wrangler
+
+# Next.js and Cloudflare build output
+.next
+next-env.d.ts
+.open-next
+*.tsbuildinfo

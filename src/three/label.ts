@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import crestUrl from '../assets/brand/crest-gold.png'
+import crestAsset from '../assets/brand/crest-gold.png'
 import { radiusAt, DEPTH } from './profile'
 
 // The oval label, painted on canvas so it stays sharp at any zoom.
@@ -81,12 +81,12 @@ function paint(ctx: CanvasRenderingContext2D, crest: HTMLImageElement, name: str
 
 export async function makeLabelTextures(name: string) {
   await document.fonts.load('600 100px "Cormorant Garamond"').catch(() => undefined)
-  const crest = await loadImage(crestUrl)
+  const crestImg = await loadImage(crestAsset.src)
   const make = (mask: boolean) => {
     const c = document.createElement('canvas')
     c.width = W
     c.height = H
-    paint(c.getContext('2d')!, crest, name, mask)
+    paint(c.getContext('2d')!, crestImg, name, mask)
     const t = new THREE.CanvasTexture(c)
     t.anisotropy = 8
     if (!mask) t.colorSpace = THREE.SRGBColorSpace

@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useRef, type ElementType, type ReactNode } from 'react'
 
 /** Fades children up the first time they enter the viewport. */

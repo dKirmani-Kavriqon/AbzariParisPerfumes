@@ -1,0 +1,10 @@
+/*
+ * Tailwind for new UI work. Preflight (Tailwind's CSS reset) is deliberately left out so the
+ * existing design in site.css renders exactly as before. site.css is unlayered, so its rules
+ * win over these utilities; on elements that already have a site.css class, prefer extending
+ * site.css or use the `!` important modifier.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@source '../';

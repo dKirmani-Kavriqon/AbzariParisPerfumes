@@ -1,25 +1,21 @@
+'use client'
+
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import ProductCard from '../components/ProductCard'
+import NotFound from './NotFound'
 import { bySlug, formatINR, hasNoteImage, noteDescription, noteImage, products } from '../data/products'
 import { useCart } from '../state/cart'
 
-export default function ProductPage() {
-  const { slug = '' } = useParams()
+export default function ProductPage({ slug }: { slug: string }) {
   const p = bySlug(slug)
   const add = useCart((s) => s.add)
-  const nav = useNavigate()
+  const router = useRouter()
   const [qty, setQty] = useState(1)
   const [shot, setShot] = useState(0)
 
-  if (!p) {
-    return (
-      <div className="page wrap narrow">
-        <h1 className="display">Not found</h1>
-        <p>That fragrance is not in the collection. <Link to="/shop">See everything we make.</Link></p>
-      </div>
-    )
-  }
+  if (!p) return <NotFound />
   const shots = p.gallery ?? [p.image!]
   const related = products.filter((x) => x.category === p.category && x.slug !== p.slug && !x.soldOut).slice(0, 4)
 
@@ -65,7 +61,7 @@ export default function ProductPage() {
                 onClick={() => {
                   add(p.slug, qty)
                   useCart.getState().setOpen(false)
-                  nav('/checkout')
+                  router.push('/checkout')
                 }}
               >
                 Buy now
@@ -74,7 +70,7 @@ export default function ProductPage() {
           )}
 
           {p.slug === 'rawah' && (
-            <Link to="/" className="link-arrow pdp-story">Open the bottle in 3D</Link>
+            <Link href="/" className="link-arrow pdp-story">Open the bottle in 3D</Link>
           )}
 
           {p.notes && (

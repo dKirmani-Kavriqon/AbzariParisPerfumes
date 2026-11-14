@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import RawahStory from '../components/RawahStory'
 import ProductCard from '../components/ProductCard'
 import Reveal from '../components/Reveal'
@@ -32,13 +32,13 @@ export default function Home() {
 
       <section className="feature">
         <div className="feature-media">
-          <img src={`${import.meta.env.BASE_URL}products/voyage-hero.webp`} alt="Voyage eau de parfum on a stone counter" loading="lazy" />
+          <img src="/products/voyage-hero.webp" alt="Voyage eau de parfum on a stone counter" loading="lazy" />
         </div>
         <Reveal className="feature-copy">
           <p className="eyebrow">Also in the house</p>
           <h2 className="display">Voyage</h2>
           <p className="lede">Frozen apple, Italian bergamot and lemon over a spiced heart and earthy woods. Crisp, then warm.</p>
-          <Link to="/product/voyage" className="btn btn-dark">
+          <Link href="/product/voyage" className="btn btn-dark">
             Discover Voyage <ArrowIcon size={18} />
           </Link>
         </Reveal>
@@ -82,7 +82,7 @@ export default function Home() {
         <Reveal className="wrap founder-inner">
           <p className="founder-quote">“A fragrance is not only worn. It is remembered.”</p>
           <p className="founder-by">Hasan Abbas, Founder</p>
-          <Link to="/about" className="link-arrow">
+          <Link href="/about" className="link-arrow">
             Read the story <ArrowIcon size={16} />
           </Link>
         </Reveal>

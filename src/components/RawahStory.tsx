@@ -1,5 +1,7 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+'use client'
+
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import Link from 'next/link'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { motion, window4 } from '../three/motion'
@@ -9,8 +11,11 @@ import { useCart } from '../state/cart'
 gsap.registerPlugin(ScrollTrigger)
 // Start fetching the 3D chunk as soon as this module is evaluated, in parallel with the
 // first paint, instead of waiting for React to reach the lazy boundary.
-const sceneChunk = import('../three/RawahScene')
-const RawahScene = lazy(() => sceneChunk)
+// Only in the browser: the server never loads three.js.
+const sceneChunk = typeof window === 'undefined' ? null : import('../three/RawahScene')
+const RawahScene = lazy(() => sceneChunk ?? import('../three/RawahScene'))
+
+const noSubscribe = () => () => {}
 
 type Chapter = { from: number; in: number; out: number; to: number; side: 'center' | 'left'; bottom?: boolean; node: React.ReactNode }
 
@@ -27,6 +32,9 @@ export default function RawahStory() {
   const [hint, setHint] = useState(true)
   const [ready, setReady] = useState(false)
   const [active, setActive] = useState(true)
+  // three.js only exists in the browser, so the canvas mounts after hydration
+  // (false while rendering on the server and during hydration, true afterwards).
+  const mounted = useSyncExternalStore(noSubscribe, () => true, () => false)
   const add = useCart((s) => s.add)
   const rawah = bySlug('rawah')!
 
@@ -95,7 +103,7 @@ export default function RawahStory() {
           </p>
           <div className="story-actions">
             <button className="btn btn-gold" onClick={() => add('rawah')}>Add to bag</button>
-            <Link className="btn btn-ghost-light" to="/product/rawah">Details</Link>
+            <Link className="btn btn-ghost-light" href="/product/rawah">Details</Link>
           </div>
         </div>
       ),
@@ -188,9 +196,11 @@ export default function RawahStory() {
       <div ref={stage} className="story-stage">
         <div className="story-glow" aria-hidden />
         <div className={`story-canvas ${ready ? 'is-ready' : ''}`}>
-          <Suspense fallback={null}>
-            <RawahScene active={active} onReady={() => setReady(true)} />
-          </Suspense>
+          {mounted && (
+            <Suspense fallback={null}>
+              <RawahScene active={active} onReady={() => setReady(true)} />
+            </Suspense>
+          )}
         </div>
         {!ready && <div className="story-loader" aria-hidden />}
         {chapters.map((c, i) => (
