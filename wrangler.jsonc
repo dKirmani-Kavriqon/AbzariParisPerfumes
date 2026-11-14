@@ -1,0 +1,24 @@
+{
+  // One Worker per client per environment. For another client, copy this file and change
+  // `name`, `account_id` and the self-reference service below (see docs/CLIENT_SETUP.md).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "abzari-paris-preview",
+  "account_id": "558c396a78e9cb79e07d05f9f24314b3",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "abzari-paris-preview" }],
+
+  // Non-secret settings. Secrets (DATABASE_URL, HEALTH_CHECK_TOKEN, later payment and email
+  // keys) are set with `wrangler secret put` and never written here.
+  "vars": { "APP_ENV": "preview", "LOG_LEVEL": "info" },
+
+  // Workers Logs: included in the free plan (with a daily event allowance).
+  "observability": { "enabled": true },
+
+  // Served at https://abzari-paris-preview.<account-subdomain>.workers.dev. No custom domain
+  // or routes until launch.
+  "workers_dev": true,
+  "preview_urls": false
+}
