@@ -45,6 +45,14 @@ const quantity = z.number().int('Must be a whole number.').min(0, 'Cannot be neg
 
 // ---------- products ----------
 
+/** Product-page details, e.g. fragrance notes: up to 5 tiers of up to 10 notes. */
+export const productDetailsSchema = z.object({
+  notes: z
+    .array(z.object({ tier: trimmed(20).min(1), notes: z.array(trimmed(40).min(1)).min(1).max(10) }))
+    .max(5)
+    .optional(),
+})
+
 export const productStatusInput = z.enum(['draft', 'active'])
 
 const productFields = {
@@ -58,6 +66,7 @@ const productFields = {
   featured: z.boolean().default(false),
   seoTitle: optionalText(70),
   seoDescription: optionalText(160),
+  details: productDetailsSchema.default({}),
 }
 
 // ---------- variants ----------
@@ -133,6 +142,7 @@ export const updateProductSchema = z
     featured: z.boolean(),
     seoTitle: productFields.seoTitle,
     seoDescription: productFields.seoDescription,
+    details: productDetailsSchema,
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Nothing to update.')

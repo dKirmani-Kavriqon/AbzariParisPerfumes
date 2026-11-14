@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import RawahStory from '../components/RawahStory'
-import ProductCard from '../components/ProductCard'
+import CategoryGrid from '../components/CategoryGrid'
 import Reveal from '../components/Reveal'
-import { products } from '../data/products'
+import { store } from '../config/store'
 import { ArrowIcon, LockIcon, ReturnIcon, SealIcon, TruckIcon } from '../components/Icons'
 
-const parfums = products.filter((p) => p.category === 'parfum' && p.slug !== 'rawah')
-const oils = products.filter((p) => p.category === 'oil')
+const [first, second] = store.catalogue.homeSections
+const hero = store.catalogue.heroProductSlug
 
 export default function Home() {
   return (
@@ -16,17 +16,11 @@ export default function Home() {
       <section className="section section-paper">
         <div className="wrap">
           <Reveal className="section-head">
-            <p className="eyebrow">Eau de Parfum</p>
-            <h2 className="display">Ten bottles, ten occasions.</h2>
-            <p className="lede">Each one made for a moment: an office morning, a wedding night, a long drive out of the city.</p>
+            <p className="eyebrow">{first.eyebrow}</p>
+            <h2 className="display">{first.title}</h2>
+            <p className="lede">{first.lede}</p>
           </Reveal>
-          <div className="grid">
-            {parfums.map((p, i) => (
-              <Reveal key={p.slug} delay={(i % 4) * 70}>
-                <ProductCard p={p} />
-              </Reveal>
-            ))}
-          </div>
+          <CategoryGrid categorySlug={first.categorySlug} exclude={hero} />
         </div>
       </section>
 
@@ -47,17 +41,11 @@ export default function Home() {
       <section className="section section-ivory">
         <div className="wrap">
           <Reveal className="section-head">
-            <p className="eyebrow">Perfume Oils</p>
-            <h2 className="display">Concentrated, alcohol free, close to the skin.</h2>
-            <p className="lede">Roll-on oils in the attar tradition. Apply to the wrist and the pulse points.</p>
+            <p className="eyebrow">{second.eyebrow}</p>
+            <h2 className="display">{second.title}</h2>
+            <p className="lede">{second.lede}</p>
           </Reveal>
-          <div className="grid">
-            {oils.map((p, i) => (
-              <Reveal key={p.slug} delay={(i % 4) * 70}>
-                <ProductCard p={p} />
-              </Reveal>
-            ))}
-          </div>
+          <CategoryGrid categorySlug={second.categorySlug} exclude={hero} />
         </div>
       </section>
 

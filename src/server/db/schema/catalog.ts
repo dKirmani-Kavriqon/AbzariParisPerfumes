@@ -36,6 +36,9 @@ const updatedAt = () =>
     .defaultNow()
     .$onUpdate(() => new Date())
 
+/** Fragrance notes by tier ("Top", "Heart", "Base"); other kinds of store can add their own keys. */
+export type ProductDetails = { notes?: { tier: string; notes: string[] }[] }
+
 export const SLUG_PATTERN = '^[a-z0-9]+(-[a-z0-9]+)*$'
 export const SKU_PATTERN = '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'
 
@@ -79,6 +82,8 @@ export const products = pgTable(
     featured: boolean('featured').notNull().default(false),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
+    /** Structured, store-specific product details shown on the product page, e.g. fragrance notes. */
+    details: jsonb('details').$type<ProductDetails>().notNull().default({}),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     archivedAt: timestamp('archived_at', { withTimezone: true }),

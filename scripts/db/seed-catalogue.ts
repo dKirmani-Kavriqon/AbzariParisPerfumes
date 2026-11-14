@@ -10,12 +10,12 @@
  * - The site shows `price` with `compareAt` struck through. In the database the regular price is
  *   `compareAt` and the sale price is `price`; without compareAt, `price` is the regular price.
  * - One variant per product, SKU "ABZ-<SLUG>", labelled with the product's size.
- * - "Coming soon" products (no price) become drafts without variants.
+ * - "Coming soon" products (no price) are live without variants, so the shop shows them as "Coming soon".
  * - Stock starts at 0: real counts are entered in the admin (each change is recorded).
  */
 import { neon } from '@neondatabase/serverless'
 import { store } from '../../src/config/store.ts'
-import { products, type Category } from '../../src/data/products.ts'
+import { products, type Category } from './data/abzari-products.ts'
 
 const apply = process.argv.includes('--apply')
 const url = process.env.DATABASE_URL
@@ -57,23 +57,29 @@ for (const [key, def] of Object.entries(categoryDefs) as [Category, (typeof cate
 let created = 0
 let skipped = 0
 for (const p of products) {
-  const [exists] = (await sql`select id from products where store_id = ${storeId} and slug = ${p.slug}`) as { id: string }[]
+  const details = p.notes ? { notes: p.notes } : {}
+  const [exists] = (await sql`select id, details from products where store_id = ${storeId} and slug = ${p.slug}`) as { id: string; details: Record<string, unknown> }[]
   if (exists) {
     skipped++
+    // Fill in fragrance notes for products that have none yet; never overwrite admin edits.
+    if (p.notes && Object.keys(exists.details ?? {}).length === 0) {
+      console.log(`  ~ ${p.slug.padEnd(18)} add fragrance notes`)
+      if (apply) await sql`update products set details = ${JSON.stringify(details)}::jsonb, updated_at = now() where id = ${exists.id} and details = '{}'::jsonb`
+    }
     continue
   }
   created++
   const def = categoryDefs[p.category]
   const hasPrice = !p.soldOut && p.price > 0
-  console.log(`  + ${p.slug.padEnd(18)} ${hasPrice ? `${p.compareAt ?? p.price} / sale ${p.compareAt ? p.price : '-'} INR` : 'draft, no variant'}`)
+  console.log(`  + ${p.slug.padEnd(18)} ${hasPrice ? `${p.compareAt ?? p.price} / sale ${p.compareAt ? p.price : '-'} INR` : 'coming soon (no variant)'}`)
   if (!apply) continue
 
   const productId = crypto.randomUUID()
   const variantId = crypto.randomUUID()
   const images = p.gallery ?? (p.image ? [p.image] : [])
   const statements = [
-    sql`insert into products (id, store_id, name, slug, short_description, full_description, brand, product_type, status, featured)
-        values (${productId}, ${storeId}, ${p.name}, ${p.slug}, ${p.size}, ${p.description ?? null}, ${'Abzari Paris'}, ${def.type}, ${hasPrice ? 'active' : 'draft'}, ${featured.has(p.slug)})`,
+    sql`insert into products (id, store_id, name, slug, short_description, full_description, brand, product_type, status, featured, details)
+        values (${productId}, ${storeId}, ${p.name}, ${p.slug}, ${p.size}, ${p.description ?? null}, ${'Abzari Paris'}, ${def.type}, ${'active'}, ${featured.has(p.slug)}, ${JSON.stringify(details)}::jsonb)`,
   ]
   if (categoryIds[p.category]) statements.push(sql`insert into product_categories (store_id, product_id, category_id) values (${storeId}, ${productId}, ${categoryIds[p.category]!})`)
   if (hasPrice) {

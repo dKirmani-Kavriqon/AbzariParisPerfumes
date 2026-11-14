@@ -60,3 +60,14 @@ export function formatMoney(minor: number, currency: string, locale = 'en-IN') {
   const shown = minor % 10 ** digits === 0 ? 0 : digits
   return new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: shown, maximumFractionDigits: shown }).format(minor / 10 ** digits)
 }
+
+/**
+ * Shop price label. INR keeps the storefront's existing style ("Rs. 1,500"; paise only when
+ * present: "Rs. 1,499.50"); other currencies use the standard local format.
+ */
+export function formatShopPrice(minor: number, currency: string, locale = 'en-IN') {
+  if (currency !== 'INR') return formatMoney(minor, currency, locale)
+  const whole = Math.trunc(minor / 100)
+  const paise = minor % 100
+  return 'Rs. ' + whole.toLocaleString('en-IN') + (paise ? `.${String(paise).padStart(2, '0')}` : '')
+}

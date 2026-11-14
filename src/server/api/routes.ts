@@ -34,6 +34,8 @@ import { pingDatabase } from '../db/client'
 import { checkImage, contentHash, MAX_IMAGE_BYTES, productImageKey, SERVABLE_KEY_RE } from '../storage/image-validation'
 import type { ApiDeps } from './deps'
 import { createRouter } from './router'
+import { getPublishedCatalog, publishCatalog } from '../catalog/publish'
+import { productBySlug, queryProducts } from '../../commerce/catalog/public'
 
 type Ctx = RouteContext<Record<string, string>> & { deps: ApiDeps }
 type AdminCtx = Ctx & { db: Db; store: StoreContext; admin: AdminIdentity; actor: string }
@@ -46,7 +48,20 @@ const admin =
     assertSameOriginWrite(req)
     const db = ctx.deps.db()
     const store = await resolveStore(db, ctx.deps.storeCode)
-    return fn(req, { ...ctx, db, store, admin: identity, actor: identity.email ?? 'local-developer' })
+    const res = await fn(req, { ...ctx, db, store, admin: identity, actor: identity.email ?? 'local-developer' })
+    if (req.method === 'GET' || res.status >= 400) return res
+    // Every successful change republishes the public catalogue, so the shop updates within seconds.
+    // A failed publish does not undo the saved change; it is logged and reported in a header.
+    let published = 'true'
+    try {
+      await publishCatalog({ db: () => db, storeCode: ctx.deps.storeCode, objectStore: ctx.deps.objectStore, log: ctx.log })
+    } catch (error) {
+      published = 'false'
+      ctx.log.error('catalogue publish failed after admin change', { error })
+    }
+    const out = new Response(res.body, res)
+    out.headers.set('x-catalog-published', published)
+    return out
   }
 
 const param = (ctx: Ctx, key: string) => validate(idSchema, ctx.params[key])
@@ -75,22 +90,86 @@ export function buildApi() {
   /** Uploaded product images. Only keys this app writes are served; content type comes from upload time. */
   api.get('/media/*key', async (_req, ctx) => {
     const key = ctx.params.key
-    if (!SERVABLE_KEY_RE.test(key)) throw notFound('Not found.')
+    // Public only if the key is this store's and the image belongs to a live product in the
+    // published catalogue. Draft, archived or removed products' images are not served here.
+    if (!SERVABLE_KEY_RE.test(key) || !key.startsWith(`stores/${ctx.deps.storeCode}/`)) throw notFound('Not found.')
     const store = ctx.deps.objectStore()
     if (!store) throw notFound('Not found.')
+    const published = await getPublishedCatalog(publicDeps(ctx))
+    if (!published.mediaKeys.includes(key)) throw notFound('Not found.')
     const obj = await store.get(key)
     if (!obj) throw notFound('Not found.')
     return new Response(obj.body, {
       headers: {
         'content-type': obj.contentType,
         'content-length': String(obj.size),
-        'cache-control': 'public, max-age=31536000, immutable',
+        // A day, not forever: a removed image stops being served to new visitors within a day.
+        'cache-control': 'public, max-age=86400',
         'x-content-type-options': 'nosniff',
         'content-security-policy': "default-src 'none'; sandbox",
         ...(obj.etag ? { etag: obj.etag } : {}),
       },
     })
   })
+
+  // ---------- public catalogue (read-only; served from the published copy, not the database) ----------
+
+  api.get('/api/catalog', async (req, ctx) => {
+    const published = await getPublishedCatalog(publicDeps(ctx))
+    if (req.headers.get('if-none-match') === published.etag) {
+      return new Response(null, { status: 304, headers: { etag: published.etag, 'cache-control': CATALOG_CACHE } })
+    }
+    const res = ok(published.catalog, ctx.requestId)
+    res.headers.set('etag', published.etag)
+    res.headers.set('cache-control', CATALOG_CACHE)
+    return res
+  })
+  api.get('/api/catalog/products', async (req, ctx) => {
+    const q = parseQuery(req, publicProductQuery)
+    const { catalog } = await getPublishedCatalog(publicDeps(ctx))
+    const all = queryProducts(catalog, q)
+    return ok({ items: all.slice(q.offset, q.offset + q.limit), total: all.length, limit: q.limit, offset: q.offset }, ctx.requestId)
+  })
+  api.get('/api/catalog/products/:slug', async (_req, ctx) => {
+    const slug = validate(publicSlug, ctx.params.slug)
+    const { catalog } = await getPublishedCatalog(publicDeps(ctx))
+    const product = productBySlug(catalog, slug)
+    if (!product) throw notFound('That product is not in the shop.')
+    return ok(product, ctx.requestId)
+  })
+  api.get('/api/catalog/categories', async (_req, ctx) => {
+    const { catalog } = await getPublishedCatalog(publicDeps(ctx))
+    return ok(catalog.categories, ctx.requestId)
+  })
+
+  // ---------- admin: storefront publishing ----------
+
+  api.get(
+    '/api/admin/catalog/status',
+    admin(async (_req, ctx) => {
+      const p = await getPublishedCatalog(publicDeps(ctx))
+      return okJson({ generatedAt: p.catalog.generatedAt, products: p.catalog.products.length, storage: ctx.deps.objectStore() ? 'r2' : 'memory' }, ctx)
+    }),
+  )
+  // A manual "publish now" (the admin wrapper republishes after any write, including this one).
+  api.post(
+    '/api/admin/catalog/publish',
+    admin(async (_req, ctx) => okJson({ requested: true }, ctx)),
+  )
+
+  /** Images of any product (including drafts) for the admin screens. */
+  api.get(
+    '/api/admin/media/*key',
+    admin(async (_req, ctx) => {
+      const key = ctx.params.key
+      if (!SERVABLE_KEY_RE.test(key) || !key.startsWith(`stores/${ctx.store.code}/`)) throw notFound('Not found.')
+      const obj = await ctx.deps.objectStore()?.get(key)
+      if (!obj) throw notFound('Not found.')
+      return new Response(obj.body, {
+        headers: { 'content-type': obj.contentType, 'cache-control': 'private, max-age=300', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; sandbox" },
+      })
+    }),
+  )
 
   // ---------- admin: session ----------
 
@@ -322,6 +401,19 @@ async function uploadImage(req: Request, ctx: AdminCtx, productId: string) {
     throw error
   }
 }
+
+/** Browsers revalidate the catalogue on each load (cheap 304 when unchanged), so changes show up immediately. */
+const CATALOG_CACHE = 'public, max-age=0, must-revalidate'
+const publicSlug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(120)
+const publicProductQuery = z.object({
+  q: z.string().trim().max(100).optional(),
+  category: z.union([publicSlug, z.literal('coming-soon')]).optional(),
+  availability: z.enum(['available', 'all']).default('all'),
+  sort: z.enum(['featured', 'price-asc', 'price-desc', 'name']).default('featured'),
+  limit: z.coerce.number().int().min(1).max(100).default(48),
+  offset: z.coerce.number().int().min(0).max(10_000).default(0),
+})
+const publicDeps = (ctx: Ctx) => ({ db: ctx.deps.db, storeCode: ctx.deps.storeCode, objectStore: ctx.deps.objectStore, log: ctx.log })
 
 let cached: ReturnType<typeof buildApi> | undefined
 export function api() {

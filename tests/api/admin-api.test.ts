@@ -183,7 +183,8 @@ describe('catalogue API', () => {
   })
 
   it('uploads, serves, orders and deletes product images', async () => {
-    const p = await call('/api/admin/products', { json: { name: `Imaged ${uniq()}` } })
+    // Live product: /media only serves images of products that are live in the shop.
+    const p = await call('/api/admin/products', { json: { name: `Imaged ${uniq()}`, status: 'active' } })
     const pid = p.body!.data.id
     const upload = (bytes: Uint8Array, name: string, type: string, d = deps()) => {
       const form = new FormData()
@@ -203,7 +204,7 @@ describe('catalogue API', () => {
     const served = await api.handle(new Request(`http://localhost:3000/media/${key}`), deps())
     expect(served.status).toBe(200)
     expect(served.headers.get('content-type')).toBe('image/webp')
-    expect(served.headers.get('cache-control')).toContain('immutable')
+    expect(served.headers.get('cache-control')).toBe('public, max-age=86400') // a day: withdrawn images stop being served
     expect(new Uint8Array(await served.arrayBuffer()).byteLength).toBe(photo.byteLength)
     expect((await api.handle(new Request('http://localhost:3000/media/../../etc/passwd'), deps())).status).toBe(404)
 

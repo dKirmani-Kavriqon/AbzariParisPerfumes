@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
-import { catalogImageUrl } from '../../commerce/catalog/image-url'
+import { adminImageUrl } from '../../commerce/catalog/image-url'
 import { formatMoney } from '../../commerce/catalog/money'
+import { notesToText } from '../../commerce/catalog/notes-text'
 import { useSession } from './AdminShell'
 import { adminApi } from './client'
 import { flattenTree, type Cat } from './categoryTree'
@@ -13,7 +14,7 @@ import { Badge, Field, MoneyInput, Notice, TextInput, useAdminData } from './ui'
 
 type Variant = { id: string; sku: string; barcode: string | null; title: string; priceMinor: number; salePriceMinor: number | null; currency: string; weightGrams: number | null; status: string; archivedAt: string | null; availableQuantity: number; lowStockThreshold: number }
 type Image = { id: string; source: string; storageKey: string; altText: string; isPrimary: boolean; position: number; width: number | null; height: number | null }
-type Product = Omit<ProductFields, 'status'> & { id: string; archivedAt: string | null; status: 'draft' | 'active' | 'archived'; categories: { id: string }[]; variants: Variant[]; images: Image[]; updatedAt: string }
+type Product = Omit<ProductFields, 'status' | 'notesText'> & { details?: { notes?: { tier: string; notes: string[] }[] }; id: string; archivedAt: string | null; status: 'draft' | 'active' | 'archived'; categories: { id: string }[]; variants: Variant[]; images: Image[]; updatedAt: string }
 
 const toFields = (p: Product): ProductFields => ({
   name: p.name,
@@ -26,6 +27,7 @@ const toFields = (p: Product): ProductFields => ({
   featured: p.featured,
   seoTitle: p.seoTitle ?? '',
   seoDescription: p.seoDescription ?? '',
+  notesText: notesToText(p.details?.notes),
 })
 
 export default function ProductEditor() {
@@ -263,7 +265,7 @@ function Images({ productId, images, disabled, onChange }: { productId: string; 
       <div className="images" style={{ marginTop: 12 }}>
         {ordered.map((img, i) => (
           <figure key={img.id} className={`image-tile ${img.isPrimary ? 'primary' : ''}`} style={{ margin: 0 }}>
-            <img src={catalogImageUrl(img.source, img.storageKey)} alt={img.altText} />
+            <img src={adminImageUrl(img.source, img.storageKey)} alt={img.altText} />
             <figcaption className="muted" style={{ fontSize: 12 }}>{img.isPrimary ? 'Primary · ' : ''}{img.width && img.height ? `${img.width}×${img.height}` : img.source}</figcaption>
             {!disabled && (
               <>

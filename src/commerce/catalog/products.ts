@@ -146,6 +146,7 @@ export async function createProduct(db: Db, store: StoreContext, input: CreatePr
     featured: input.featured,
     seoTitle: input.seoTitle,
     seoDescription: input.seoDescription,
+    details: input.details,
   })
   const links = input.categoryIds.map((categoryId, position) => db.insert(productCategories).values({ storeId: store.id, productId: id, categoryId, position }))
   const { statements } = variantInserts(db, store.id, id, input.variants, store.defaultCurrency, actor)

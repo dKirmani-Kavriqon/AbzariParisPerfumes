@@ -2,14 +2,18 @@
 
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { bySlug, formatINR } from '../data/products'
-import { cartTotal, useCart } from '../state/cart'
+import { formatShopPrice } from '../commerce/catalog/money'
+import { leadVariant } from '../commerce/catalog/public'
+import { useCatalog } from '../state/catalog'
+import { cartTotal, unitPrice, useCart } from '../state/cart'
 
 export default function Checkout() {
   const { lines, clear } = useCart()
   const [order, setOrder] = useState<string | null>(null)
   const [pay, setPay] = useState('upi')
-  const total = cartTotal(lines)
+  const { catalog, bySlug } = useCatalog()
+  const total = cartTotal(lines, catalog)
+  const money = (minor: number) => formatShopPrice(minor, catalog.currency)
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -77,25 +81,26 @@ export default function Checkout() {
               </label>
             ))}
           </fieldset>
-          <button className="btn btn-dark btn-block" type="submit">Place order · {formatINR(total)}</button>
+          <button className="btn btn-dark btn-block" type="submit">Place order · {money(total)}</button>
           <p className="fine">Demo checkout. No payment is taken.</p>
         </form>
         <aside className="summary">
           <h2>Order summary</h2>
           <ul>
             {lines.map((l) => {
-              const p = bySlug(l.slug)!
+              const p = bySlug(l.slug)
+              if (!p) return null
               return (
                 <li key={l.slug}>
-                  <span className="summary-img"><img src={p.image} alt="" /><b>{l.qty}</b></span>
-                  <span className="summary-name">{p.name}<small>{p.size}</small></span>
-                  <span>{formatINR(p.price * l.qty)}</span>
+                  <span className="summary-img"><img src={p.images[0]?.url} alt="" /><b>{l.qty}</b></span>
+                  <span className="summary-name">{p.name}<small>{leadVariant(p)?.title || p.shortDescription}</small></span>
+                  <span>{money(unitPrice(p) * l.qty)}</span>
                 </li>
               )
             })}
           </ul>
           <div className="row-between"><span>Shipping</span><span>Free</span></div>
-          <div className="row-between total"><span>Total</span><strong>{formatINR(total)}</strong></div>
+          <div className="row-between total"><span>Total</span><strong>{money(total)}</strong></div>
         </aside>
       </div>
     </div>
