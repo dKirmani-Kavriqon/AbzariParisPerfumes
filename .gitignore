@@ -23,3 +23,15 @@ dist-ssr
 *.sln
 *.sw?
 dist-preview
+
+# Local secrets: never commit. Only the documented templates are allowed.
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.pem
+*.key
+.neon
+.wrangler
