@@ -12,8 +12,9 @@ Neon Postgres (free plan), accessed with Drizzle ORM through Neon's HTTPS driver
 | Compute | autoscaling 0.25–1 CU, scales to zero after 5 minutes idle |
 | Data API | **Off** (removed in Phase 1; all access goes through the Worker) |
 | Neon Auth | On, kept for admin login in Phase 5. Its tables live in the `neon_auth` schema, which Drizzle never touches (`schemaFilter: ['public']`) |
-| App tables | `app_meta` (platform key/value settings). No commerce tables yet |
-| Migrations applied | `0000_foundation` |
+| App tables | `app_meta`; catalogue: `stores`, `products`, `categories`, `product_categories`, `product_variants`, `product_images`, `inventory`, `inventory_movements` (see [CATALOGUE.md](CATALOGUE.md)) |
+| Migrations applied | `0000_foundation`, `0001_catalogue` (Phase 2, additive) |
+| Seeded | Store `abzari-paris`, 4 categories, 21 products from `src/data/products.ts` (`npm run db:seed`) |
 
 ## Why the HTTP driver and not Hyperdrive
 
@@ -64,6 +65,12 @@ queries per request.
   that writes it, backfill, then make it required in a later migration. The running Worker and
   the database are never updated at exactly the same moment.
 - Run one migration process at a time (an advisory lock serialises concurrent runs).
+
+## Seeding a store
+
+`npm run db:seed` (dry run) / `npm run db:seed -- --apply` creates the store row for
+`src/config/store.ts` and loads `src/data/products.ts`. It only adds products whose slug is not
+in the database yet, so it never overwrites admin edits. Stock starts at 0.
 
 ## Backups
 

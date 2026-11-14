@@ -4,8 +4,9 @@ Storefront for Abzari Paris, built on the Kavriqon Commerce Engine: Next.js (App
 React, TypeScript and Tailwind, deployed to Cloudflare Workers with OpenNext, and backed by Neon
 Postgres through Drizzle ORM. Everything runs on free plans.
 
-**Status:** Phase 1 (foundation). The catalogue still comes from `src/data/products.ts`, the cart
-lives in the browser and checkout is a demo. Payments, orders and email arrive in later phases.
+**Status:** Phase 2 (catalogue). Products, categories, variants, stock and images live in the
+database and are managed at `/admin`. The storefront still renders from `src/data/products.ts`,
+the cart lives in the browser and checkout is a demo. Payments, orders and email arrive later.
 
 ## Getting started
 
@@ -29,11 +30,15 @@ npm run dev                    # http://localhost:3000, Next.js dev server
 | `npm run db:generate` | Generates a migration from schema changes |
 | `npm run db:migrate` | Dry run of pending migrations; add `-- --apply` to apply |
 | `npm run db:verify` | Database connectivity and read/write check |
+| `npm run db:seed` | Dry run of loading the store and catalogue; add `-- --apply` to load |
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md): how the code is organised and why
-- [Database](docs/DATABASE.md): connection, schema, safe migrations
+- [Database](docs/DATABASE.md): connection, schema, safe migrations, seeding
+- [Catalogue and inventory](docs/CATALOGUE.md): entities, isolation, money, stock ledger, images
+- [API](docs/API.md): conventions and every endpoint
+- [Testing](docs/TESTING.md)
 - [Deployment](docs/DEPLOYMENT.md): Cloudflare, secrets, CI, preview environment
 - [Setting up another client](docs/CLIENT_SETUP.md)
 - [Decision: Next.js adapter for Workers](docs/decisions/0001-nextjs-adapter.md)
@@ -54,7 +59,9 @@ npm run dev                    # http://localhost:3000, Next.js dev server
 | `src/three/label.ts` | Paints the label on a canvas and bends it onto the glass. |
 | `src/data/products.ts` | All 21 products, prices and notes (moves to the database in Phase 2). |
 | `src/config/store.ts` | Per-client settings: name, contact details, branding, business text. Public. |
-| `src/commerce/` | The reusable commerce engine (module boundaries; functionality starts in Phase 2) |
+| `src/commerce/catalog/` | Catalogue business rules: products, categories, variants, inventory, images, money, validation |
+| `src/views/admin/`, `src/app/admin/` | The admin screens |
+| `worker.ts` | Cloudflare Worker entry: API and media routes, admin gate, then Next.js |
 | `src/server/` | Server-only code: environment, database, API conventions, logging, integrations |
 | `drizzle/` | Generated SQL migrations, reviewed in pull requests |
 | `public/products/`, `public/notes/` | Product photos and note images |

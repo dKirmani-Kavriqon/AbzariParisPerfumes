@@ -14,6 +14,10 @@ No custom domain, routes or DNS are configured.
 
 ## Deploying
 
+The Worker entry is `worker.ts`: it answers `/api/*` and `/media/*` with the API router before
+Next.js runs (much less CPU per request), only serves `/admin` pages to an admin (everyone else
+gets the 404 page), and hands everything else to OpenNext's generated handler.
+
 Deploys run in GitHub Actions (`.github/workflows/deploy-preview.yml`):
 `npm ci` → `opennextjs-cloudflare build` → `opennextjs-cloudflare deploy` → smoke test of `/`,
 `/shop`, `/product/rawah` and `/api/health`.
@@ -36,7 +40,7 @@ A developer with their own `wrangler login` can also run `npm run deploy:preview
 | Where | What | How it is set |
 | --- | --- | --- |
 | Worker secrets | `DATABASE_URL`, `HEALTH_CHECK_TOKEN`; later `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RESEND_API_KEY` | `wrangler secret put NAME` (prompts for the value, or reads it from stdin) or the Cloudflare dashboard: Worker → Settings → Variables and Secrets |
-| Worker vars (`wrangler.jsonc`) | `APP_ENV`, `LOG_LEVEL`: not secret | committed |
+| Worker vars (`wrangler.jsonc`) | `APP_ENV`, `LOG_LEVEL`, and once Access is set up `ADMIN_ACCESS_TEAM_DOMAIN`, `ADMIN_ACCESS_AUD`, `ADMIN_EMAILS`: not secret | committed |
 | GitHub Actions secret | `CLOUDFLARE_API_TOKEN` | GitHub settings |
 | Local | `.env.local`, `.dev.vars` | copied from the `*.example` templates; git-ignored |
 
@@ -52,6 +56,39 @@ openssl rand -hex 32 | npx wrangler secret put HEALTH_CHECK_TOKEN
 
 Then call `GET /api/health?checks=db` with header `x-health-token: <token>` to check the database
 from the deployed Worker.
+
+## Server environment variables
+
+| Name | Secret | Purpose |
+| --- | --- | --- |
+| `APP_ENV` | no | `development`, `preview` or `production` |
+| `LOG_LEVEL` | no | `debug`, `info`, `warn`, `error` |
+| `DATABASE_URL` | **yes** | Neon pooled connection string |
+| `HEALTH_CHECK_TOKEN` | **yes** | Unlocks `/api/health?checks=db` (32+ characters) |
+| `ADMIN_ACCESS_TEAM_DOMAIN` | no | `<team>.cloudflareaccess.com`; with `ADMIN_ACCESS_AUD`, turns on admin access |
+| `ADMIN_ACCESS_AUD` | no | The Access application's audience tag (64 hex characters) |
+| `ADMIN_EMAILS` | no | Optional comma-separated admin allowlist |
+| `ADMIN_LOCAL_DEV` | no | `1` opens admin on localhost when `APP_ENV=development`; ignored elsewhere |
+
+Bindings: `MEDIA_BUCKET` (R2, image uploads) once R2 is enabled; see
+[CATALOGUE.md](CATALOGUE.md#enabling-uploads-r2).
+
+## Turning on the admin for the preview (Cloudflare Access)
+
+The admin is closed on deployed Workers until Cloudflare Access protects it. Access is
+Cloudflare's login gateway, free for up to 50 users. Steps (Cloudflare dashboard, account level):
+
+1. **Zero Trust** → choose a team name (e.g. `kavriqon`) and the **Free** plan.
+2. **Access → Applications → Add an application → Self-hosted**. Domain:
+   `abzari-paris-preview.abzaric1.workers.dev`, paths `admin` and `api/admin`. Add a policy that
+   allows only your admin emails (one-time PIN by email works without any identity provider).
+3. Copy the application's **AUD tag**.
+4. In `wrangler.jsonc` `vars`, add `ADMIN_ACCESS_TEAM_DOMAIN` (`<team>.cloudflareaccess.com`),
+   `ADMIN_ACCESS_AUD`, and optionally `ADMIN_EMAILS`, then deploy.
+
+Visiting `/admin` then asks for a sign-in at Cloudflare's edge; the Worker additionally verifies
+the signed token on every admin page and API call. Phase 5 replaces this interim setup with the
+store's own admin login.
 
 ## Checking a deployment
 

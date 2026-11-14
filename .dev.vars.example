@@ -4,3 +4,10 @@ APP_ENV=development
 LOG_LEVEL=debug
 DATABASE_URL=
 HEALTH_CHECK_TOKEN=
+
+# Admin access. Local development: ADMIN_LOCAL_DEV=1 (with APP_ENV=development) opens /admin on
+# localhost. Deployed Workers use Cloudflare Access instead (see docs/DEPLOYMENT.md).
+ADMIN_LOCAL_DEV=0
+ADMIN_ACCESS_TEAM_DOMAIN=
+ADMIN_ACCESS_AUD=
+ADMIN_EMAILS=
