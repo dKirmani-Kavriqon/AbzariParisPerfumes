@@ -1,4 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { getServerEnv } from '../../src/server/env'
+import { api } from '../../src/server/api/routes'
+import type { ApiDeps } from '../../src/server/api/deps'
 
 vi.mock('../../src/server/db/client', () => ({
   getDb: vi.fn(() => ({})),
@@ -6,25 +9,19 @@ vi.mock('../../src/server/db/client', () => ({
 }))
 
 const TOKEN = 't'.repeat(40)
-const saved = { ...process.env }
+const baseEnv = { APP_ENV: 'preview', DATABASE_URL: 'postgresql://u:p@ep-x.neon.tech/neondb', HEALTH_CHECK_TOKEN: TOKEN }
 
-async function call(url: string, headers: Record<string, string> = {}, method = 'GET') {
-  vi.resetModules()
-  const mod = await import('../../src/app/api/health/route')
-  const handler = mod[method as 'GET']
-  return handler(new Request(`https://shop.test${url}`, { method, headers }))
-}
+const deps = (env: Record<string, string | undefined> = baseEnv): ApiDeps => ({
+  db: () => ({}) as never,
+  env: () => getServerEnv(env),
+  storeCode: 'abzari-paris',
+  storeName: 'Abzari Paris',
+  objectStore: () => null,
+  fetch,
+})
+const call = (url: string, init: RequestInit = {}, env?: Record<string, string | undefined>) => api().handle(new Request(`https://shop.test${url}`, init), deps(env))
 
 describe('GET /api/health', () => {
-  beforeEach(() => {
-    process.env.APP_ENV = 'preview'
-    process.env.DATABASE_URL = 'postgresql://u:p@ep-x.neon.tech/neondb'
-    process.env.HEALTH_CHECK_TOKEN = TOKEN
-  })
-  afterEach(() => {
-    process.env = { ...saved }
-  })
-
   it('reports status without touching the database', async () => {
     const { pingDatabase } = await import('../../src/server/db/client')
     const res = await call('/api/health')
@@ -33,29 +30,31 @@ describe('GET /api/health', () => {
     expect(pingDatabase).not.toHaveBeenCalled()
   })
 
-  it('refuses the database check without the token', async () => {
+  it('refuses the database check without the token, and runs it with the token', async () => {
     expect((await call('/api/health?checks=db')).status).toBe(403)
-    expect((await call('/api/health?checks=db', { 'x-health-token': 'wrong' })).status).toBe(403)
-  })
-
-  it('runs the database check with the token', async () => {
-    const res = await call('/api/health?checks=db', { 'x-health-token': TOKEN })
-    expect(res.status).toBe(200)
+    expect((await call('/api/health?checks=db', { headers: { 'x-health-token': 'wrong' } })).status).toBe(403)
+    const res = await call('/api/health?checks=db', { headers: { 'x-health-token': TOKEN } })
     expect((await res.json()).data).toMatchObject({ database: 'reachable', databaseLatencyMs: 12 })
   })
 
-  it('rejects unknown checks with 422', async () => {
+  it('rejects unknown checks with 422 and other methods with 405', async () => {
     expect((await call('/api/health?checks=everything')).status).toBe(422)
+    const res = await call('/api/health', { method: 'POST' })
+    expect(res.status).toBe(405)
+    expect(res.headers.get('allow')).toBe('GET')
   })
 
   it('answers 500 without details when configuration is invalid', async () => {
-    process.env.APP_ENV = 'staging'
-    const res = await call('/api/health')
+    const res = await call('/api/health', {}, { ...baseEnv, APP_ENV: 'staging' })
     expect(res.status).toBe(500)
     expect(JSON.stringify(await res.json())).not.toMatch(/APP_ENV|staging/)
   })
 
-  it('rejects other methods with 405', async () => {
-    expect((await call('/api/health', {}, 'POST')).status).toBe(405)
+  it('returns the JSON 404 for unknown API paths, with security headers', async () => {
+    const res = await call('/api/nope')
+    expect(res.status).toBe(404)
+    expect((await res.json()).error.code).toBe('not_found')
+    expect(res.headers.get('content-security-policy')).toContain("default-src 'self'")
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff')
   })
 })

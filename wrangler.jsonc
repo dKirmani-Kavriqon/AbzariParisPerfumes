@@ -4,7 +4,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "abzari-paris-preview",
   "account_id": "558c396a78e9cb79e07d05f9f24314b3",
-  "main": ".open-next/worker.js",
+  "main": "worker.ts",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
