@@ -99,8 +99,8 @@ GET /media/<key> ──▶ ObjectStore.get(key) ──▶ image with Cache-Contr
 
 ### Enabling uploads (R2)
 
-R2 is **not enabled** on the Cloudflare account yet, so the preview Worker has no bucket and
-uploads answer `503 Image uploads are not set up`. Static images work regardless. To enable:
+**Status (preview): enabled.** Private bucket `abzari-paris-media` (APAC), bound as `MEDIA_BUCKET`;
+no public r2.dev address or custom domain. For another deployment:
 
 1. Cloudflare dashboard → R2 → enable R2 (the free tier: 10 GB storage, 1M writes and 10M reads a
    month; Cloudflare may ask for a payment method even for free usage).
@@ -117,8 +117,8 @@ reads a month: inside the free tier.
 - The storefront still renders from `src/data/products.ts`; admin edits are not yet visible on
   the public pages. Moving the storefront to the database is planned, ideally as build-time
   generation (keeps pages static and CPU low) plus a rebuild when the catalogue changes.
-- Admin access on deployed Workers needs Cloudflare Access to be set up (see
-  `docs/DEPLOYMENT.md`); until then the admin answers 404 and its API 403 there.
+- Admin access on deployed Workers needs Cloudflare Access (configured for the preview; see
+  `docs/DEPLOYMENT.md`).
 - Search is a case-insensitive substring match (fine for hundreds of products). Postgres
   full-text search can replace it if a store grows large.
 - No bulk import/export yet.

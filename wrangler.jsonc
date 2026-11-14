@@ -14,7 +14,17 @@
 
   // Non-secret settings. Secrets (DATABASE_URL, HEALTH_CHECK_TOKEN, later payment and email
   // keys) are set with `wrangler secret put` and never written here.
-  "vars": { "APP_ENV": "preview", "LOG_LEVEL": "info" },
+  "vars": {
+    "APP_ENV": "preview",
+    "LOG_LEVEL": "info",
+    // Admin access through Cloudflare Access (application "Abzari Paris admin (preview)", covering
+    // /admin and /api/admin). Not secret. The admin email allowlist is a Worker secret (ADMIN_EMAILS).
+    "ADMIN_ACCESS_TEAM_DOMAIN": "tiny-cloud-aadc.cloudflareaccess.com",
+    "ADMIN_ACCESS_AUD": "1f2c2306874bd1919245220f26cc067389bb08abe2c478fc7e8089f291c04acd"
+  },
+
+  // Product image uploads (private bucket; files are served by this Worker at /media).
+  "r2_buckets": [{ "binding": "MEDIA_BUCKET", "bucket_name": "abzari-paris-media" }],
 
   // Workers Logs: included in the free plan (with a daily event allowance).
   "observability": { "enabled": true },
