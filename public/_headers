@@ -1,0 +1,16 @@
+# Headers for static files served directly by Cloudflare (pages and API responses get theirs
+# from next.config.ts). Keep the security headers in step with src/config/security-headers.ts.
+/*
+  X-Content-Type-Options: nosniff
+  Strict-Transport-Security: max-age=31536000
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/products/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+/notes/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
