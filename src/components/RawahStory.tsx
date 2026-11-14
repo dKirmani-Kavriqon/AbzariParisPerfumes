@@ -5,7 +5,11 @@ import Link from 'next/link'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { motion, window4 } from '../three/motion'
-import { bySlug, formatINR, noteDescription, noteImage } from '../data/products'
+import { store } from '../config/store'
+import { formatShopPrice } from '../commerce/catalog/money'
+import { displayPrice, isPurchasable, leadVariant } from '../commerce/catalog/public'
+import { noteDescription, noteImage } from '../data/notes'
+import { useCatalog } from '../state/catalog'
 import { useCart } from '../state/cart'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -36,7 +40,10 @@ export default function RawahStory() {
   // (false while rendering on the server and during hydration, true afterwards).
   const mounted = useSyncExternalStore(noSubscribe, () => true, () => false)
   const add = useCart((s) => s.add)
-  const rawah = bySlug('rawah')!
+  const heroSlug = store.catalogue.heroProductSlug
+  const hero = useCatalog().bySlug(heroSlug)
+  const heroVariant = hero && leadVariant(hero)
+  const heroPrice = heroVariant ? displayPrice(heroVariant) : null
 
   const chapters: Chapter[] = [
     {
@@ -98,12 +105,18 @@ export default function RawahStory() {
         <div className="story-buy">
           <p className="eyebrow">50ml Eau de Parfum</p>
           <h2 className="story-h">Keep it close.</h2>
-          <p className="story-price">
-            {formatINR(rawah.price)} <s>{formatINR(rawah.compareAt!)}</s>
-          </p>
+          {heroPrice && heroVariant && (
+            <p className="story-price">
+              {formatShopPrice(heroPrice.price, heroVariant.currency)} {heroPrice.compareAt && <s>{formatShopPrice(heroPrice.compareAt, heroVariant.currency)}</s>}
+            </p>
+          )}
           <div className="story-actions">
-            <button className="btn btn-gold" onClick={() => add('rawah')}>Add to bag</button>
-            <Link className="btn btn-ghost-light" href="/product/rawah">Details</Link>
+            {hero && isPurchasable(hero) ? (
+              <button className="btn btn-gold" onClick={() => add(heroSlug)}>Add to bag</button>
+            ) : (
+              <button className="btn btn-gold" disabled aria-disabled="true">{hero?.availability === 'coming_soon' ? 'Coming soon' : 'Sold out'}</button>
+            )}
+            <Link className="btn btn-ghost-light" href={`/product/${heroSlug}`}>Details</Link>
           </div>
         </div>
       ),

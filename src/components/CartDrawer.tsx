@@ -4,8 +4,10 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { store } from '../config/store'
-import { bySlug, formatINR } from '../data/products'
-import { cartTotal, useCart } from '../state/cart'
+import { formatShopPrice } from '../commerce/catalog/money'
+import { leadVariant } from '../commerce/catalog/public'
+import { useCatalog } from '../state/catalog'
+import { cartTotal, unitPrice, useCart } from '../state/cart'
 import { CloseIcon } from './Icons'
 
 export default function CartDrawer() {
@@ -17,7 +19,9 @@ export default function CartDrawer() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [setOpen])
-  const total = cartTotal(lines)
+  const { catalog, bySlug } = useCatalog()
+  const currency = catalog.currency
+  const total = cartTotal(lines, catalog)
 
   return (
     <>
@@ -42,10 +46,10 @@ export default function CartDrawer() {
                 if (!p) return null
                 return (
                   <li key={l.slug} className="line">
-                    <img src={p.image} alt="" />
+                    <img src={p.images[0]?.url} alt="" />
                     <div className="line-info">
                       <Link href={`/product/${p.slug}`} className="line-name">{p.name}</Link>
-                      <span className="line-meta">{p.size}</span>
+                      <span className="line-meta">{leadVariant(p)?.title || p.shortDescription}</span>
                       <div className="stepper" role="group" aria-label={`Quantity of ${p.name}`}>
                         <button onClick={() => setQty(l.slug, l.qty - 1)} aria-label="Decrease">−</button>
                         <span>{l.qty}</span>
@@ -53,7 +57,7 @@ export default function CartDrawer() {
                       </div>
                     </div>
                     <div className="line-end">
-                      <span>{formatINR(p.price * l.qty)}</span>
+                      <span>{formatShopPrice(unitPrice(p) * l.qty, currency)}</span>
                       <button className="link-btn" onClick={() => remove(l.slug)}>Remove</button>
                     </div>
                   </li>
@@ -63,7 +67,7 @@ export default function CartDrawer() {
             <div className="drawer-foot">
               <div className="row-between">
                 <span>Subtotal</span>
-                <strong>{formatINR(total)}</strong>
+                <strong>{formatShopPrice(total, currency)}</strong>
               </div>
               <p className="fine">{store.business.shippingNote}</p>
               <Link href="/checkout" className="btn btn-dark btn-block">Checkout</Link>

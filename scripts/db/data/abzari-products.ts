@@ -20,6 +20,8 @@ export type Product = {
   notes?: NoteTier[]
 }
 
+// SEED DATA ONLY: loaded into the database by scripts/db/seed-catalogue.ts. The running site reads
+// the catalogue from the database and must never import this file (tests/catalog/no-hardcoded-catalogue.test.ts).
 // Catalogue mirrors abzariparis.com as of 8 Nov 2026 (21 items).
 // Descriptions and notes are only filled in where the live store publishes them.
 export const products: Product[] = [
@@ -84,31 +86,4 @@ function bySlugRaw(slug: string) {
   return products.find((p) => p.slug === slug)
 }
 
-/** What each note smells like, in plain words. Shown in the Rawah story and on product pages. */
-export const noteDescription: Record<string, string> = {
-  Woody: 'Dry, smooth wood, like a freshly planed board of cedar.',
-  Balsamic: 'Warm tree resin, sweet and a little sticky, glowing like honey.',
-  Powdery: 'A soft, cosmetic finish that blurs the edges, like face powder on skin.',
-  Musky: 'Clean, skin-like warmth that sits close and lasts.',
-  'Warm Spicy': 'Cinnamon bark, clove and star anise, warm rather than hot.',
-  Tobacco: 'Cured leaf, sweet and faintly smoky, like an opened tin.',
-  Oud: 'Agarwood. Deep, smoky and a little leathery: the heart of Rawah.',
-  Amber: 'Golden resin warmth, round and sweet, that holds everything together.',
-  Metallic: 'A cool mineral edge that keeps the base from feeling heavy.',
-}
-
-export const noteImage = (note: string) => `/notes/${note.toLowerCase().replace(/\s+/g, '-')}.webp`
-export const hasNoteImage = (note: string) =>
-  ['woody', 'balsamic', 'powdery', 'musky', 'warm spicy', 'tobacco', 'oud', 'amber', 'metallic'].includes(note.toLowerCase())
-
-export const categoryLabel: Record<Category, string> = {
-  parfum: 'Eau de Parfum',
-  oil: 'Perfume Oils',
-  bakhoor: 'Bakhoor',
-  natural: 'Natural Oils',
-}
-
 export const bySlug = (slug: string) => products.find((p) => p.slug === slug)
-
-export const formatINR = (n: number) =>
-  'Rs. ' + n.toLocaleString('en-IN', { minimumFractionDigits: 0 })

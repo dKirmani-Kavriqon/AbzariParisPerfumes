@@ -31,10 +31,25 @@ Every `/api/admin/*` call requires an admin (see `src/server/auth/admin.ts`):
 
 ### Public
 
+Read-only, served from the published catalogue (never the database directly), store-scoped, and
+limited to public fields (no ids, no stock counts). Parameters are validated (422 otherwise).
+
 | Method | Path | |
 | --- | --- | --- |
 | GET | `/api/health` | Status and configuration. `?checks=db` with `x-health-token` also checks the database |
-| GET | `/media/<key>` | An uploaded product image |
+| GET | `/api/catalog` | The whole public catalogue. `ETag` + `If-None-Match` → 304; `Cache-Control: public, max-age=0, must-revalidate` |
+| GET | `/api/catalog/products` | `q`, `category` (slug, includes subcategories; or `coming-soon`), `availability` (`all`/`available`), `sort` (`featured`, `price-asc`, `price-desc`, `name`), `limit` ≤100, `offset` |
+| GET | `/api/catalog/products/:slug` | One live product, or 404 |
+| GET | `/api/catalog/categories` | Visible categories with their parent slug |
+| GET | `/media/<key>` | An uploaded image, **only** if it belongs to this store and to a product that is live in the published catalogue; `Cache-Control: public, max-age=86400` |
+
+### Storefront publishing
+
+| Method | Path | |
+| --- | --- | --- |
+| GET | `/api/admin/catalog/status` | When the live catalogue was published, product count, storage |
+| POST | `/api/admin/catalog/publish` | Republish now (every successful admin write already republishes; responses carry `x-catalog-published`) |
+| GET | `/api/admin/media/<key>` | Any of this store's uploaded images, including drafts (admin only) |
 
 ### Session
 

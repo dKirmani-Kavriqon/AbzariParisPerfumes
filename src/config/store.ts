@@ -36,6 +36,15 @@ export type StoreConfig = {
     returnsWindowDays: number
   }
   credit: string
+  /** How the catalogue is presented. Category slugs refer to categories in the database. */
+  catalogue: {
+    /** The product told by the 3D story on the home page (left out of the grids below it). */
+    heroProductSlug: string
+    /** Product grids on the home page, in order. */
+    homeSections: { categorySlug: string; eyebrow: string; title: string; lede: string }[]
+    /** Old shop links (?c=parfum) still work: alias → category slug. */
+    categoryAliases: Record<string, string>
+  }
 }
 
 export const store: StoreConfig = {
@@ -62,4 +71,22 @@ export const store: StoreConfig = {
     returnsWindowDays: 7,
   },
   credit: 'Site by Kavriqon Technologies',
+  catalogue: {
+    heroProductSlug: 'rawah',
+    homeSections: [
+      {
+        categorySlug: 'eau-de-parfum',
+        eyebrow: 'Eau de Parfum',
+        title: 'Ten bottles, ten occasions.',
+        lede: 'Each one made for a moment: an office morning, a wedding night, a long drive out of the city.',
+      },
+      {
+        categorySlug: 'perfume-oils',
+        eyebrow: 'Perfume Oils',
+        title: 'Concentrated, alcohol free, close to the skin.',
+        lede: 'Roll-on oils in the attar tradition. Apply to the wrist and the pulse points.',
+      },
+    ],
+    categoryAliases: { parfum: 'eau-de-parfum', oil: 'perfume-oils', soon: 'coming-soon' },
+  },
 }

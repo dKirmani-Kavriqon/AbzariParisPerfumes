@@ -1,0 +1,93 @@
+name: Nightly database backup
+
+# Dumps the Neon database every night, proves the dump restores into a fresh Postgres, then stores
+# it in the private R2 bucket "abzari-paris-backups" under daily/ (a bucket lifecycle rule deletes
+# copies after 30 days). Free: GitHub-hosted runner, R2 free tier.
+#
+# Needs two repository secrets:
+#   BACKUP_DATABASE_URL  connection string of the read-only role "backup_reader" (Neon console →
+#                        Connect → role backup_reader). Never the owner role.
+#   CLOUDFLARE_API_TOKEN already present; must include Workers R2 Storage: Edit.
+# Without BACKUP_DATABASE_URL the job skips with a notice. See docs/BACKUPS.md.
+on:
+  schedule:
+    - cron: "47 21 * * *" # 21:47 UTC = 03:17 IST, the quietest time for the shop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 558c396a78e9cb79e07d05f9f24314b3
+      WRANGLER_SEND_METRICS: "false"
+    services:
+      # A throwaway Postgres to prove every dump actually restores.
+      verify:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: verify
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - name: Check configuration
+        id: cfg
+        run: |
+          if [ -z "$BACKUP_DATABASE_URL" ]; then
+            echo "::notice::BACKUP_DATABASE_URL is not set; skipping the backup. See docs/BACKUPS.md."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dump the database (custom format, compressed)
+        if: steps.cfg.outputs.skip != 'true'
+        run: |
+          stamp=$(date -u +%Y-%m-%d)
+          echo "STAMP=$stamp" >> "$GITHUB_ENV"
+          docker run --rm --network host -v "$PWD:/out" postgres:18 \
+            pg_dump --format=custom --no-owner --no-privileges --schema=public --schema=drizzle \
+            --file "/out/neondb-$stamp.dump" "$BACKUP_DATABASE_URL"
+          ls -l "neondb-$stamp.dump"
+
+      - name: Restore into a fresh Postgres and compare row counts
+        if: steps.cfg.outputs.skip != 'true'
+        env:
+          VERIFY_URL: postgresql://postgres:verify@localhost:5432/postgres
+        run: |
+          docker run --rm --network host -v "$PWD:/out" postgres:18 \
+            pg_restore --no-owner --no-privileges --exit-on-error --dbname "$VERIFY_URL" "/out/neondb-$STAMP.dump"
+          q="select string_agg(t || '=' || n, ' ' order by t) from (
+               select 'products' t, count(*) n from products union all
+               select 'product_variants', count(*) from product_variants union all
+               select 'inventory', count(*) from inventory union all
+               select 'inventory_movements', count(*) from inventory_movements union all
+               select 'product_images', count(*) from product_images union all
+               select 'categories', count(*) from categories) c"
+          src=$(docker run --rm --network host postgres:18 psql "$BACKUP_DATABASE_URL" -Atc "$q")
+          dst=$(docker run --rm --network host postgres:18 psql "$VERIFY_URL" -Atc "$q")
+          echo "source:   $src"; echo "restored: $dst"
+          test "$src" = "$dst"
+
+      - name: Store in R2 (private bucket, daily/ expires after 30 days)
+        if: steps.cfg.outputs.skip != 'true'
+        run: |
+          npx --yes wrangler@4.162.0 r2 object put "abzari-paris-backups/daily/neondb-$STAMP.dump" \
+            --file "neondb-$STAMP.dump" --content-type application/octet-stream --remote
+          # First backup of each month is also kept under monthly/ (no expiry), for longer history.
+          if [ "$(date -u +%d)" = "01" ]; then
+            npx --yes wrangler@4.162.0 r2 object put "abzari-paris-backups/monthly/neondb-$STAMP.dump" \
+              --file "neondb-$STAMP.dump" --content-type application/octet-stream --remote
+          fi
+
+      - name: Remove the local copy
+        if: always()
+        run: rm -f neondb-*.dump

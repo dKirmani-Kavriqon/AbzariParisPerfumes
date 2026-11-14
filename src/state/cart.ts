@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { bySlug } from '../data/products'
+import { displayPrice, leadVariant, productBySlug, type PublicCatalog, type PublicProduct } from '../commerce/catalog/public'
 
 type Line = { slug: string; qty: number }
 
@@ -40,5 +40,12 @@ export const useCart = create<CartState>()(
 )
 
 export const cartCount = (lines: Line[]) => lines.reduce((n, l) => n + l.qty, 0)
-export const cartTotal = (lines: Line[]) =>
-  lines.reduce((n, l) => n + (bySlug(l.slug)?.price ?? 0) * l.qty, 0)
+
+/** Unit price (minor units) of a product in the bag: its lead variant's current price. Display only;
+ *  the real total is calculated on the server at checkout (Phase 3B). */
+export const unitPrice = (p: PublicProduct | undefined) => {
+  const v = p && leadVariant(p)
+  return v ? displayPrice(v).price : 0
+}
+export const cartTotal = (lines: Line[], catalog: PublicCatalog) =>
+  lines.reduce((n, l) => n + unitPrice(productBySlug(catalog, l.slug)) * l.qty, 0)

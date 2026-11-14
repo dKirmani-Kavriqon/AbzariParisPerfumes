@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import { parseNotesText } from '../../commerce/catalog/notes-text'
 import { slugify } from '../../commerce/catalog/slug'
 import { Field, MoneyInput, Notice, TextArea, TextInput } from './ui'
 
@@ -15,16 +16,20 @@ export type ProductFields = {
   featured: boolean
   seoTitle: string
   seoDescription: string
+  /** Fragrance notes, one tier per line: "Top: Woody, Balsamic". */
+  notesText: string
 }
 
 export type FirstVariant = { sku: string; title: string; priceMinor: number | null; salePriceMinor: number | null; initialStock: string }
 
-export const emptyProduct: ProductFields = { name: '', slug: '', brand: '', productType: 'standard', shortDescription: '', fullDescription: '', status: 'draft', featured: false, seoTitle: '', seoDescription: '' }
+export const emptyProduct: ProductFields = { name: '', slug: '', brand: '', productType: 'standard', shortDescription: '', fullDescription: '', status: 'draft', featured: false, seoTitle: '', seoDescription: '', notesText: '' }
 
 /** Fields → API body (empty strings become null so optional fields are cleared, not set to ""). */
 export function productBody(f: ProductFields) {
   const opt = (s: string) => (s.trim() ? s.trim() : null)
+  const parsed = parseNotesText(f.notesText)
   return {
+    details: { notes: parsed.ok ? parsed.notes : [] },
     name: f.name.trim(),
     slug: f.slug.trim() || undefined,
     brand: opt(f.brand),
@@ -65,6 +70,8 @@ export default function ProductForm({ initial, currency, categories, initialCate
     e.preventDefault()
     const local: Record<string, string> = {}
     if (!f.name.trim()) local.name = 'Required.'
+    const notes = parseNotesText(f.notesText)
+    if (!notes.ok) local.notes = `Line ${notes.line}: write it as "Tier: note, note".`
     const useVariant = withFirstVariant && (variant.sku.trim() || variant.priceMinor != null)
     if (useVariant) {
       if (!variant.sku.trim()) local.sku = 'Required.'
@@ -122,6 +129,9 @@ export default function ProductForm({ initial, currency, categories, initialCate
       </Field>
       <Field label="Full description" error={err('fullDescription')}>
         <TextArea rows={6} maxLength={10000} value={f.fullDescription} onChange={(e) => set('fullDescription', e.target.value)} />
+      </Field>
+      <Field label="Fragrance notes" error={err('notes') ?? err('details')} hint='One tier per line, e.g. "Top: Woody, Balsamic, Powdery"'>
+        <TextArea rows={3} value={f.notesText} onChange={(e) => set('notesText', e.target.value)} />
       </Field>
       <div className="grid-2">
         <Field label="Status" error={err('status')}>

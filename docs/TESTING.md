@@ -37,6 +37,7 @@ run against a shared branch.
 | Inventory (adjustments, movement history, negative stock, concurrency, thresholds, append-only ledger), images (primary, order, delete, sharing), **store isolation** (service and database level) | `tests/catalog/inventory-isolation.test.ts` |
 | Image upload validation (real photos, all formats, executables, SVG/HTML, limits, safe keys) | `tests/storage/image-validation.test.ts` |
 | Admin access (fail closed, local switch, CSRF, Cloudflare Access JWT checks), full catalogue API over HTTP including uploads and `/media` | `tests/api/admin-api.test.ts` |
+| Public catalogue (contents, prices, availability without counts, coming soon, drafts/archived hidden, image order, store isolation), search/filter/sort, public API and validation, republish on admin writes, no stale overwrite, approved-only `/media`, database failure handling, no hardcoded catalogue in `src/` | `tests/catalog/public-catalog.test.ts` |
 | Health endpoint, router errors and headers | `tests/api/health.test.ts` |
 | Environment validation, logging redaction, API conventions | `tests/server/*.test.ts` |
 
