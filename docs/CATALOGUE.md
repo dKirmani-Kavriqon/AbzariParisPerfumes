@@ -4,9 +4,7 @@ The catalogue is store-scoped data in Neon Postgres, managed through the admin A
 Code lives in `src/commerce/catalog/` (business rules), `src/server/db/schema/catalog.ts`
 (tables) and `src/server/api/routes.ts` (HTTP).
 
-> **Storefront note:** the public pages still read `src/data/products.ts`. The database holds the
-> same catalogue (loaded by `npm run db:seed`) and is edited in the admin; switching the
-> storefront to read from it is planned for a later phase (see "Limitations").
+The storefront reads the same catalogue: see [How the shop shows the catalogue](#how-the-shop-shows-the-catalogue).
 
 ## Entities
 
@@ -112,11 +110,54 @@ no public r2.dev address or custom domain. For another deployment:
 Expected use for this store: well under 1 GB, a few hundred writes and tens of thousands of
 reads a month: inside the free tier.
 
-## Limitations (Phase 2)
+## How the shop shows the catalogue
 
-- The storefront still renders from `src/data/products.ts`; admin edits are not yet visible on
-  the public pages. Moving the storefront to the database is planned, ideally as build-time
-  generation (keeps pages static and CPU low) plus a rebuild when the catalogue changes.
+```
+admin save ──▶ database ──▶ publish: public catalogue JSON ──▶ R2 stores/<store>/catalog/public.json
+                (in the same request, ~1 s)                        │
+                                                                   ▼
+shopper ──▶ pre-built page (HTML baked from the catalogue at build) ──▶ browser loads /api/catalog
+            ~2–3 ms Worker CPU, no database                            (memory → R2; ETag/304)
+```
+
+- **Public catalogue** (`src/commerce/catalog/public.ts`, built by `public-build.ts`): live
+  products only (status *active*, not archived), active variants, visible categories. Each
+  variant has its prices and an **availability status** (`in_stock`, `low_stock`,
+  `out_of_stock`), never the stock count. Products with no variant are `coming_soon`. No
+  database ids, reserved quantities, thresholds or admin data are included. Read in a single
+  transaction, so it is consistent even while the admin is saving.
+- **Publishing**: every successful admin change (product, variant, stock, image, category)
+  republishes it to R2. A copy read earlier never overwrites a newer one. Admin → Overview or
+  `POST /api/admin/catalog/publish` republishes manually.
+- **Shoppers never wake the database.** `/api/catalog` and the Worker read the published copy
+  (memory for 10 s, then R2). Only if R2 has no copy is it built from the database (and stored).
+- **Pre-rendered pages**: `next build` bakes the catalogue into the HTML (from `DATABASE_URL`
+  locally, or the live `/api/catalog` in CI via `CATALOG_SOURCE_URL`), so search engines and first
+  paint see real products. The browser then loads the live catalogue and updates prices,
+  availability and listings in place. A daily rebuild refreshes the baked HTML.
+- **New and archived products between builds**: `worker.ts` checks `/product/<slug>` against the
+  live catalogue. Archived products get the 404 page even though their pre-built page exists;
+  products added since the build are served by the pre-built `/product-view` page, which renders
+  the product from the live catalogue at its own address. Nothing renders on demand.
+- **Shop**: categories (top-level tabs, subcategory tabs, `?c=<slug>`, old `?c=parfum` links still
+  work), search (`?q=`; name, brand, notes, size, SKU), "in stock only", sorting. Search runs on the
+  published catalogue in the browser: instant, and no database queries per keystroke.
+- **Stock display**: sold-out products keep their price and show "Sold out" with no Add to bag;
+  low stock shows "Only a few left". The storefront never changes or reserves stock.
+
+### Freshness
+
+| Change in the admin | Visible in the shop |
+| --- | --- |
+| Price, sale price, stock, availability | On the next page load (seconds) |
+| New product, new photo, archive/unpublish | On the next page load; the product page itself works immediately via the live page |
+| Text/SEO in the pre-rendered HTML (what search engines read) | Next daily rebuild or deploy |
+
+## Limitations
+
+- Search engines see catalogue changes after the next daily rebuild (shoppers see them at once).
+- Rawah and Voyage cards now use their primary photo (the old site used a different card photo
+  than the product page). Choose another primary photo in the admin to change it.
 - Admin access on deployed Workers needs Cloudflare Access (configured for the preview; see
   `docs/DEPLOYMENT.md`).
 - Search is a case-insensitive substring match (fine for hundreds of products). Postgres

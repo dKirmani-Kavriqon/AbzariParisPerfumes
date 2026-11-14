@@ -13,8 +13,8 @@ Neon Postgres (free plan), accessed with Drizzle ORM through Neon's HTTPS driver
 | Data API | **Off** (removed in Phase 1; all access goes through the Worker) |
 | Neon Auth | On, kept for admin login in Phase 5. Its tables live in the `neon_auth` schema, which Drizzle never touches (`schemaFilter: ['public']`) |
 | App tables | `app_meta`; catalogue: `stores`, `products`, `categories`, `product_categories`, `product_variants`, `product_images`, `inventory`, `inventory_movements` (see [CATALOGUE.md](CATALOGUE.md)) |
-| Migrations applied | `0000_foundation`, `0001_catalogue` (Phase 2, additive) |
-| Seeded | Store `abzari-paris`, 4 categories, 21 products from `src/data/products.ts` (`npm run db:seed`) |
+| Migrations applied | `0000_foundation`, `0001_catalogue` (Phase 2), `0002_product-details` (Phase 3A: `products.details` for fragrance notes); all additive |
+| Seeded | Store `abzari-paris`, 4 categories, 21 products from `scripts/db/data/abzari-products.ts` (`npm run db:seed`) |
 
 ## Why the HTTP driver and not Hyperdrive
 
@@ -69,11 +69,15 @@ queries per request.
 ## Seeding a store
 
 `npm run db:seed` (dry run) / `npm run db:seed -- --apply` creates the store row for
-`src/config/store.ts` and loads `src/data/products.ts`. It only adds products whose slug is not
-in the database yet, so it never overwrites admin edits. Stock starts at 0.
+`src/config/store.ts` and loads `scripts/db/data/abzari-products.ts`. It only adds products whose slug is
+not in the database yet, so it never overwrites admin edits (fragrance notes are filled in only where a
+product has none). Stock starts at 0: products show "Sold out" until stock is entered in the admin.
+
+## One-off data fixes
+
+Recorded in `scripts/db/data-fixes/` (dry run by default, `--apply` to run). 2026-11-14: Bakhoor and
+Natural Oils made live as "Coming soon"; the test product "test brand" archived.
 
 ## Backups
 
-The free plan keeps 6 hours of history (point-in-time restore within that window). That is not
-a backup. Before real orders are taken (Phase 3), add a scheduled `pg_dump` to storage outside
-Neon.
+See [BACKUPS.md](BACKUPS.md): Neon point-in-time restore (6 hours) plus a nightly verified dump to R2.

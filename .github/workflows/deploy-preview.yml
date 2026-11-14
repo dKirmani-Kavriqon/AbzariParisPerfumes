@@ -9,6 +9,11 @@ on:
   push:
     branches: ["phase-*", "preview/**"]
   workflow_dispatch:
+  # Daily rebuild from main, so the pre-rendered HTML (what search engines read) includes catalogue
+  # changes. Shoppers see admin changes within seconds anyway through the live catalogue.
+  schedule:
+    - cron: "23 22 * * *"
+
 
 permissions:
   contents: read
@@ -27,6 +32,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       # <worker name from wrangler.jsonc>.<Cloudflare account's workers.dev subdomain>
       PREVIEW_HOST: abzari-paris-preview.abzaric1.workers.dev
+      # Pages are pre-rendered from the live published catalogue: public data, no secrets needed.
+      CATALOG_SOURCE_URL: https://abzari-paris-preview.abzaric1.workers.dev/api/catalog
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

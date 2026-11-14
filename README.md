@@ -4,9 +4,8 @@ Storefront for Abzari Paris, built on the Kavriqon Commerce Engine: Next.js (App
 React, TypeScript and Tailwind, deployed to Cloudflare Workers with OpenNext, and backed by Neon
 Postgres through Drizzle ORM. Everything runs on free plans.
 
-**Status:** Phase 2 (catalogue). Products, categories, variants, stock and images live in the
-database and are managed at `/admin`. The storefront still renders from `src/data/products.ts`,
-the cart lives in the browser and checkout is a demo. Payments, orders and email arrive later.
+**Status:** Phase 3A. The shop shows the live catalogue from the database (managed at `/admin`):
+changes appear within seconds. The cart lives in the browser and checkout is a demo until Phase 3B.
 
 ## Getting started
 
@@ -39,6 +38,7 @@ npm run dev                    # http://localhost:3000, Next.js dev server
 - [Catalogue and inventory](docs/CATALOGUE.md): entities, isolation, money, stock ledger, images
 - [API](docs/API.md): conventions and every endpoint
 - [Testing](docs/TESTING.md)
+- [Backups and recovery](docs/BACKUPS.md)
 - [Deployment](docs/DEPLOYMENT.md): Cloudflare, secrets, CI, preview environment
 - [Setting up another client](docs/CLIENT_SETUP.md)
 - [Decision: Next.js adapter for Workers](docs/decisions/0001-nextjs-adapter.md)
@@ -57,7 +57,8 @@ npm run dev                    # http://localhost:3000, Next.js dev server
 | `src/three/SprayMist.tsx` | The atomiser spray: droplets launched sideways from the nozzle, slowed by air drag, then drifting as mist. |
 | `src/three/spray.ts` | Nozzle position, spray direction and the press rhythm shared by the bottle and the mist. |
 | `src/three/label.ts` | Paints the label on a canvas and bends it onto the glass. |
-| `src/data/products.ts` | All 21 products, prices and notes (moves to the database in Phase 2). |
+| `scripts/db/data/abzari-products.ts` | The original 21 products: seed data only (the site reads the database). |
+| `src/data/notes.ts` | What each fragrance note smells like, and its photo |
 | `src/config/store.ts` | Per-client settings: name, contact details, branding, business text. Public. |
 | `src/commerce/catalog/` | Catalogue business rules: products, categories, variants, inventory, images, money, validation |
 | `src/views/admin/`, `src/app/admin/` | The admin screens |

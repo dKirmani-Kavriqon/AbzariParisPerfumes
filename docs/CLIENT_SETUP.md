@@ -27,7 +27,7 @@ Everything under `src/commerce/`, `src/server/` and `src/app/api/` stays the sam
 3. Edit the files in the table above.
 4. Apply migrations to the new database: `DATABASE_URL=... npm run db:migrate -- --apply`, then
    create the store row (and any starting catalogue) with `npm run db:seed -- --apply`, after
-   replacing `src/data/products.ts` with the client's products (or leave it empty and use the admin).
+   replacing `scripts/db/data/abzari-products.ts` (seed data) with the client's products (or leave it empty and use the admin).
 5. Set the Worker secrets for the new Worker (`npx wrangler secret put DATABASE_URL`, ...).
 6. Add the client's `CLOUDFLARE_API_TOKEN` to the repository's Actions secrets and push to a
    `phase-*` or `preview/**` branch to deploy a preview.

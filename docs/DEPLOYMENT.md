@@ -18,6 +18,12 @@ The Worker entry is `worker.ts`: it answers `/api/*` and `/media/*` with the API
 Next.js runs (much less CPU per request), only serves `/admin` pages to an admin (everyone else
 gets the 404 page), and hands everything else to OpenNext's generated handler.
 
+Pages are pre-rendered from the live published catalogue at build time: the deploy job sets
+`CATALOG_SOURCE_URL` to the preview's `/api/catalog` (public data, no secrets). A brand-new
+environment has no catalogue to read on its first deploy: the pages then build without products and
+fill in from the live catalogue in the browser; deploy a second time to bake the products in.
+The same workflow also rebuilds from `main` daily.
+
 Deploys run in GitHub Actions (`.github/workflows/deploy-preview.yml`):
 `npm ci` → `opennextjs-cloudflare build` → `opennextjs-cloudflare deploy` → smoke test of `/`,
 `/shop`, `/product/rawah` and `/api/health`.
@@ -69,6 +75,8 @@ from the deployed Worker.
 | `ADMIN_ACCESS_AUD` | no | The Access application's audience tag (64 hex characters) |
 | `ADMIN_EMAILS` | no (kept as a Worker secret so emails stay out of the repo) | Optional comma-separated admin allowlist |
 | `ADMIN_LOCAL_DEV` | no | `1` opens admin on localhost when `APP_ENV=development`; ignored elsewhere |
+| `CATALOG_SOURCE_URL` | no | Build time only: where `next build` reads the catalogue when it has no `DATABASE_URL` |
+| `CATALOG_REQUIRED` | no | Build time only: `1` fails the build if the catalogue cannot be read |
 
 Bindings: `MEDIA_BUCKET` (R2, image uploads) once R2 is enabled; see
 [CATALOGUE.md](CATALOGUE.md#enabling-uploads-r2).

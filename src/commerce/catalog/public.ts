@@ -79,7 +79,12 @@ export function categoryWithDescendants(categories: PublicCategory[], slug: stri
   let grew = true
   while (grew) {
     grew = false
-    for (const c of categories) if (c.parent && out.has(c.parent) && !out.has(c.slug)) (out.add(c.slug), (grew = true))
+    for (const c of categories) {
+      if (c.parent && out.has(c.parent) && !out.has(c.slug)) {
+        out.add(c.slug)
+        grew = true
+      }
+    }
   }
   return out
 }
