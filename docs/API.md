@@ -43,6 +43,12 @@ limited to public fields (no ids, no stock counts). Parameters are validated (42
 | GET | `/api/catalog/categories` | Visible categories with their parent slug |
 | GET | `/media/<key>` | An uploaded image, **only** if it belongs to this store and to a product that is live in the published catalogue; `Cache-Control: public, max-age=86400` |
 
+### Cart
+
+| Method | Path | |
+| --- | --- | --- |
+| POST | `/api/cart/quote` | Prices and checks a bag against the database. Body `{ "items": [{ "sku": "ABZ-RAWAH", "quantity": 2 }] }` (strict: no other fields; ≤20 items; quantity 1–10; ≤4 KB). Returns `{ currency, lines: [{ sku, quantity, status, maxQuantity, product, unitPriceMinor, compareAtMinor, lineTotalMinor }], subtotalMinor, itemCount, canCheckout, checkedAt }`. `status`: `ok`, `insufficient_stock`, `sold_out`, `unavailable`. Read-only, `no-store`. 422 invalid body, 413 too large, 415 not JSON, 503 database unavailable. See [CART.md](CART.md) |
+
 ### Storefront publishing
 
 | Method | Path | |

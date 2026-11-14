@@ -38,12 +38,16 @@ run against a shared branch.
 | Image upload validation (real photos, all formats, executables, SVG/HTML, limits, safe keys) | `tests/storage/image-validation.test.ts` |
 | Admin access (fail closed, local switch, CSRF, Cloudflare Access JWT checks), full catalogue API over HTTP including uploads and `/media` | `tests/api/admin-api.test.ts` |
 | Public catalogue (contents, prices, availability without counts, coming soon, drafts/archived hidden, image order, store isolation), search/filter/sort, public API and validation, republish on admin writes, no stale overwrite, approved-only `/media`, database failure handling, no hardcoded catalogue in `src/` | `tests/catalog/public-catalog.test.ts` |
+| Cart quote: prices from the database, chosen size, duplicate lines, sale prices, price changes, quantity changes, removal, zero/insufficient/reserved stock, no stock deducted, archived/draft/inactive/unknown items (no details leaked), store isolation and client-supplied store ids, tampered prices and totals, invalid quantities and codes, limits, database failure (503, nothing leaked), 30 concurrent requests | `tests/cart/cart-quote.test.ts` |
+| Bag in the browser (against the real API): add/merge/caps, increase/decrease/remove/clear, survives a refresh, 30-day expiry, other-store and hand-edited data, rapid clicks add once, rapid quantity changes checked once, stale answers ignored, sold out/limited adds, server down, price change notice | `tests/cart/cart-store.test.ts` |
 | Health endpoint, router errors and headers | `tests/api/health.test.ts` |
 | Environment validation, logging redaction, API conventions | `tests/server/*.test.ts` |
 
 ## Browser checks
 
-Playwright scripts (not in CI) compare the storefront with the Phase 1 baseline and walk through
+Playwright scripts (not in CI) compare the storefront with the Phase 1 baseline, walk through the
+bag on desktop and phone (add from card and product page, sizes, quantities, refresh, stock drops,
+price change, sold out, rapid clicks, clear, keyboard, no sideways scrolling) and walk through
 the admin: product list and search, create category and product with variant, validation
 messages, duplicate SKU, editing, image upload, ordering and primary, stock adjustments and
 history, archive/restore, phone layouts. Run the admin locally with:

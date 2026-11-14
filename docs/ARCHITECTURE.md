@@ -21,6 +21,9 @@ Cloudflare Worker  (worker.ts; one per client per environment, free plan)
 Catalogue for shoppers: admin write → database → published JSON in R2 → `/api/catalog` → browser
 (see [CATALOGUE.md](CATALOGUE.md#how-the-shop-shows-the-catalogue)).
 
+Bag: SKUs and quantities in the browser's localStorage → `POST /api/cart/quote` → prices, stock and
+subtotal from the database (see [CART.md](CART.md)).
+
 Pages are pre-rendered at build time wherever possible. On the free Workers plan a request may
 use 10 ms of CPU, so pages that can be static must stay static; server rendering is reserved
 for what genuinely changes per request (cart totals, orders, admin).
@@ -32,7 +35,7 @@ for what genuinely changes per request (cart totals, orders, admin).
 | `src/app/` | Routes: `(store)/` storefront pages, `admin/` admin pages, `api/` and `media/` adapters. Thin. | everything below |
 | `src/views/` | Page bodies (`admin/` holds the admin screens) | components, config, data, state, `src/commerce/catalog` browser-safe helpers |
 | `src/components/`, `src/three/` | UI | config, data, state |
-| `src/state/` | Browser state: cart (localStorage) and the live catalogue (`catalog.tsx`) | commerce/catalog browser-safe helpers |
+| `src/state/` | Browser state: the bag (`cart.ts`, SKUs and quantities in localStorage, priced by the server) and the live catalogue (`catalog.tsx`) | commerce browser-safe helpers |
 | `src/config/` | Public per-client settings, security headers | nothing app-specific |
 | `src/types/` | Types shared by browser and server | nothing |
 | `src/commerce/` | Reusable business rules (see its README) | `src/server/db`, `src/server/http/errors`, types |

@@ -73,6 +73,9 @@ export function fromPrice(p: PublicProduct) {
 
 export const isPurchasable = (p: PublicProduct) => p.availability === 'in_stock' || p.availability === 'low_stock'
 
+/** The variant a one-click "Add to bag" adds: the first one that is in stock. */
+export const buyable = (p: PublicProduct) => p.variants.find((v) => v.availability === 'in_stock' || v.availability === 'low_stock')
+
 /** A category and all of its descendants. */
 export function categoryWithDescendants(categories: PublicCategory[], slug: string) {
   const out = new Set<string>([slug])

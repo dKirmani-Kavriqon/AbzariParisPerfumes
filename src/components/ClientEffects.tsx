@@ -6,7 +6,9 @@ import Lenis from 'lenis'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { motion } from '../three/motion'
-import { useCart } from '../state/cart'
+import { cartStore } from '../state/cart'
+import { cartStorageKey } from '../commerce/cart/cart'
+import { store } from '../config/store'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -15,9 +17,13 @@ export default function ClientEffects() {
   const pathname = usePathname()
 
   // The bag lives in localStorage. Restore it after the first render so the server HTML
-  // (always an empty bag) and the first browser render match.
+  // (always an empty bag) and the first browser render match; restoring also rechecks prices and
+  // stock with the server. A change made in another tab is picked up the same way.
   useEffect(() => {
-    void useCart.persist.rehydrate()
+    cartStore.getState().hydrate()
+    const onStorage = (e: StorageEvent) => e.key === cartStorageKey(store.id) && cartStore.getState().hydrate()
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
   }, [])
 
   useEffect(() => {

@@ -595,3 +595,20 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* product page: variant choice */
 .pdp-variants { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 0; }
 .pdp-stock { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+
+/* ---------- bag states (Phase 3B) ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.drawer-notice { margin: 0; padding: 12px 28px; font-size: 13px; background: var(--ivory); border-bottom: 1px solid var(--line); }
+.drawer-notice.is-warn { color: var(--gold-deep); }
+.line-alert { font-size: 12px; color: var(--gold-deep); margin: 4px 0 0; }
+.line-note { font-size: 12px; color: var(--ink-2); }
+.line-meta s { margin-left: 4px; }
+.line.is-unavailable img, .line.is-unavailable .line-name { opacity: 0.55; }
+.line-img-empty { width: 76px; height: 76px; border-radius: 4px; background: var(--ivory); }
+.stepper button:disabled { opacity: 0.35; cursor: not-allowed; }
+.drawer-clear { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; font-size: 12px; color: var(--muted); }
+.summary li.is-unavailable img { opacity: 0.55; }
+.summary-name .line-alert, .summary-name .line-note { font-family: var(--sans); margin: 0; }
+a.card-add { display: grid; place-items: center; }
+.pdp-message { flex-basis: 100%; margin: 0; }
+.pdp-message:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

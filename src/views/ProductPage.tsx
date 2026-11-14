@@ -9,13 +9,17 @@ import { store } from '../config/store'
 import { formatShopPrice } from '../commerce/catalog/money'
 import { displayPrice, leadVariant } from '../commerce/catalog/public'
 import { hasNoteImage, noteDescription, noteImage } from '../data/notes'
-import { useCart } from '../state/cart'
+import { useCart, type AddResult } from '../state/cart'
+import AddToBagButton from '../components/AddToBagButton'
+import { CART_MAX_QUANTITY } from '../commerce/cart/cart'
 import { useCatalog } from '../state/catalog'
 
 export default function ProductPage({ slug }: { slug: string }) {
   const { catalog, bySlug } = useCatalog()
   const p = bySlug(slug)
   const add = useCart((s) => s.add)
+  const adding = useCart((s) => s.adding)
+  const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
   const [qty, setQty] = useState(1)
   const [shot, setShot] = useState(0)
@@ -59,7 +63,7 @@ export default function ProductPage({ slug }: { slug: string }) {
           {p.variants.length > 1 && (
             <div className="pdp-variants tabs" role="radiogroup" aria-label="Size">
               {p.variants.map((v) => (
-                <button key={v.sku} role="radio" aria-checked={v.sku === variant?.sku} className={`tab ${v.sku === variant?.sku ? 'is-active' : ''}`} onClick={() => setSku(v.sku)}>
+                <button key={v.sku} role="radio" aria-checked={v.sku === variant?.sku} className={`tab ${v.sku === variant?.sku ? 'is-active' : ''}`} onClick={() => { setSku(v.sku); setMessage(null) }}>
                   {v.title || v.sku}
                   {v.availability === 'out_of_stock' ? ' · sold out' : ''}
                 </button>
@@ -78,21 +82,27 @@ export default function ProductPage({ slug }: { slug: string }) {
           {variant && canBuy && (
             <div className="pdp-buy">
               <div className="stepper stepper-lg" role="group" aria-label="Quantity">
-                <button onClick={() => setQty(Math.max(1, qty - 1))} aria-label="Decrease">−</button>
-                <span>{qty}</span>
-                <button onClick={() => setQty(qty + 1)} aria-label="Increase">+</button>
+                <button onClick={() => setQty(Math.max(1, qty - 1))} disabled={qty <= 1} aria-label="Decrease quantity">−</button>
+                <span aria-live="polite">{qty}</span>
+                <button onClick={() => setQty(Math.min(CART_MAX_QUANTITY, qty + 1))} disabled={qty >= CART_MAX_QUANTITY} aria-label="Increase quantity">+</button>
               </div>
-              <button className="btn btn-dark grow" onClick={() => add(p.slug, qty)}>Add to bag</button>
+              <AddToBagButton className="btn btn-dark grow" sku={variant.sku} quantity={qty} onResult={(r) => setMessage(resultMessage(r))}>
+                Add to bag
+              </AddToBagButton>
               <button
                 className="btn btn-gold btn-block"
-                onClick={() => {
-                  add(p.slug, qty)
+                disabled={adding !== null}
+                onClick={async () => {
+                  const r = await add(variant.sku, qty)
+                  setMessage(resultMessage(r))
+                  if (r === 'unavailable' || r === 'busy') return
                   useCart.getState().setOpen(false)
                   router.push('/checkout')
                 }}
               >
                 Buy now
               </button>
+              <p className="pdp-stock pdp-message" role="status" aria-live="polite">{message ?? ''}</p>
             </div>
           )}
 
@@ -140,4 +150,11 @@ export default function ProductPage({ slug }: { slug: string }) {
       )}
     </div>
   )
+}
+
+function resultMessage(r: AddResult): string | null {
+  if (r === 'unavailable') return 'Sorry, this size is no longer available. Try another size or check back soon.'
+  if (r === 'limited') return 'We added as many as are available. See your bag for details.'
+  if (r === 'unchecked') return 'Added. We could not confirm availability yet; we will check again before checkout.'
+  return null
 }

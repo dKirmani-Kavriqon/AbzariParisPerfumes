@@ -18,12 +18,12 @@ const links = [
 
 export default function Header() {
   const pathname = usePathname()
-  const lines = useCart((s) => s.lines)
+  const items = useCart((s) => s.items)
   const setOpen = useCart((s) => s.setOpen)
   const [scrolled, setScrolled] = useState(false)
   const [menu, setMenu] = useState(false)
   const [heroH, setHeroH] = useState(0)
-  const count = cartCount(lines)
+  const count = cartCount(items)
 
   useEffect(() => {
     const story = document.querySelector('.story') as HTMLElement | null
