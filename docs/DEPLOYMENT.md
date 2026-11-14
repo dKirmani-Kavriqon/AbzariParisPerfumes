@@ -67,13 +67,19 @@ from the deployed Worker.
 | `HEALTH_CHECK_TOKEN` | **yes** | Unlocks `/api/health?checks=db` (32+ characters) |
 | `ADMIN_ACCESS_TEAM_DOMAIN` | no | `<team>.cloudflareaccess.com`; with `ADMIN_ACCESS_AUD`, turns on admin access |
 | `ADMIN_ACCESS_AUD` | no | The Access application's audience tag (64 hex characters) |
-| `ADMIN_EMAILS` | no | Optional comma-separated admin allowlist |
+| `ADMIN_EMAILS` | no (kept as a Worker secret so emails stay out of the repo) | Optional comma-separated admin allowlist |
 | `ADMIN_LOCAL_DEV` | no | `1` opens admin on localhost when `APP_ENV=development`; ignored elsewhere |
 
 Bindings: `MEDIA_BUCKET` (R2, image uploads) once R2 is enabled; see
 [CATALOGUE.md](CATALOGUE.md#enabling-uploads-r2).
 
 ## Turning on the admin for the preview (Cloudflare Access)
+
+**Status (preview): configured.** Team domain `tiny-cloud-aadc.cloudflareaccess.com`, application
+"Abzari Paris admin (preview)" on `/admin` and `/api/admin`, sign-in by email one-time PIN, policy
+"Abzari Paris admins". The allowlist is also set as the Worker secret `ADMIN_EMAILS` (kept out of the
+repository). To hand over to the client: edit the policy's emails in Zero Trust → Access →
+Policies and update the secret (`npx wrangler secret put ADMIN_EMAILS`).
 
 The admin is closed on deployed Workers until Cloudflare Access protects it. Access is
 Cloudflare's login gateway, free for up to 50 users. Steps (Cloudflare dashboard, account level):
