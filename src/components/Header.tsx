@@ -1,5 +1,9 @@
+'use client'
+
 import { useEffect, useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import NavLink from './NavLink'
 import logoInk from '../assets/brand/logo-ink.png'
 import logoIvory from '../assets/brand/logo-ivory.png'
 import { cartCount, useCart } from '../state/cart'
@@ -13,7 +17,7 @@ const links = [
 ]
 
 export default function Header() {
-  const { pathname } = useLocation()
+  const pathname = usePathname()
   const lines = useCart((s) => s.lines)
   const setOpen = useCart((s) => s.setOpen)
   const [scrolled, setScrolled] = useState(false)
@@ -48,13 +52,13 @@ export default function Header() {
         </button>
         <nav className="nav only-desktop" aria-label="Main">
           {links.map((l) => (
-            <NavLink key={l.to} to={l.to} end className="nav-link">
+            <NavLink key={l.to} href={l.to} className="nav-link">
               {l.label}
             </NavLink>
           ))}
         </nav>
-        <Link to="/" className="brand" aria-label="Abzari Paris home">
-          <img src={dark ? logoIvory : logoInk} alt="Abzari Paris" />
+        <Link href="/" className="brand" aria-label="Abzari Paris home">
+          <img src={(dark ? logoIvory : logoInk).src} alt="Abzari Paris" />
         </Link>
         <div className="header-actions">
           <button className="icon-btn bag-btn" aria-label={`Bag, ${count} items`} onClick={() => setOpen(true)}>
@@ -68,7 +72,7 @@ export default function Header() {
           <CloseIcon />
         </button>
         {links.map((l) => (
-          <NavLink key={l.to} to={l.to} end className="mobile-link">
+          <NavLink key={l.to} href={l.to} className="mobile-link">
             {l.label}
           </NavLink>
         ))}

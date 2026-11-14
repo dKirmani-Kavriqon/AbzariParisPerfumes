@@ -1,0 +1,6 @@
+# Copy to .dev.vars for `npm run preview` (the app running inside the local Workers runtime).
+# .dev.vars is git-ignored. Same variables as .env.example.
+APP_ENV=development
+LOG_LEVEL=debug
+DATABASE_URL=
+HEALTH_CHECK_TOKEN=

@@ -35,7 +35,7 @@ export const useCart = create<CartState>()(
       clear: () => set({ lines: [] }),
       setOpen: (open) => set({ open }),
     }),
-    { name: 'abzari-cart', partialize: (s) => ({ lines: s.lines }) },
+    { name: 'abzari-cart', partialize: (s) => ({ lines: s.lines }), skipHydration: true },
   ),
 )
 
