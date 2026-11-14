@@ -41,3 +41,5 @@ dist-preview
 next-env.d.ts
 .open-next
 *.tsbuildinfo
+.vinext/
+.cloudflare/
